@@ -60,8 +60,8 @@ JalRakshak AI is a government-grade hydrological intelligence system that monito
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/aryxan/jalrakshak-ai.git
-   cd jalrakshak-ai
+   git clone https://github.com/aryxan/Innovate.git
+   cd Innovate
    ```
 
 2. **Setup Frontend**
