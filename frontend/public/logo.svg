@@ -1,0 +1,104 @@
+<svg width="200" height="240" viewBox="0 0 200 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Main droplet gradient with rainbow effect -->
+    <linearGradient id="dropletGradient" x1="100" y1="20" x2="100" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" style="stop-color:#FEF3C7;stop-opacity:1" />
+      <stop offset="15%" style="stop-color:#FCD34D;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="35%" style="stop-color:#FB923C;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#38BDF8;stop-opacity:1" />
+      <stop offset="65%" style="stop-color:#0EA5E9;stop-opacity:1" />
+      <stop offset="80%" style="stop-color:#0284C7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0369A1;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Green accent gradient -->
+    <linearGradient id="greenAccent" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#15803D;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#22C55E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#86EFAC;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shine effect -->
+    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0" />
+    </linearGradient>
+    
+    <!-- Shadow -->
+    <radialGradient id="shadow">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0" />
+    </radialGradient>
+    
+    <!-- Glow filter -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Shadow -->
+  <ellipse cx="100" cy="205" rx="45" ry="8" fill="url(#shadow)" opacity="0.4"/>
+  
+  <!-- Main water droplet shape -->
+  <path d="M100 20 C100 20, 75 55, 70 90 C65 125, 70 155, 85 175 C92 185, 100 200, 100 200 C100 200, 108 185, 115 175 C130 155, 135 125, 130 90 C125 55, 100 20, 100 20 Z" 
+        fill="url(#dropletGradient)" 
+        stroke="#0C4A6E" 
+        stroke-width="1.5"
+        opacity="0.95"/>
+  
+  <!-- Green accent on bottom left -->
+  <path d="M70 120 C68 135, 70 150, 80 165 C75 155, 72 140, 73 125 Z" 
+        fill="url(#greenAccent)" 
+        opacity="0.7"/>
+  
+  <!-- Shine/highlight effect -->
+  <path d="M95 30 C95 30, 85 50, 82 75 C80 90, 82 105, 88 120 C85 105, 84 85, 88 65 C90 50, 95 30, 95 30 Z" 
+        fill="url(#shine)" 
+        opacity="0.5"/>
+  
+  <!-- Circuit board pattern -->
+  <g stroke="#FFFFFF" stroke-width="2.5" fill="none" opacity="0.95" filter="url(#glow)" stroke-linecap="round">
+    <!-- Main vertical line -->
+    <line x1="100" y1="60" x2="100" y2="160"/>
+    
+    <!-- Left branches -->
+    <path d="M100 75 L85 75 L85 85"/>
+    <path d="M100 105 L85 105 L85 115"/>
+    <path d="M100 135 L85 135"/>
+    
+    <!-- Right branches -->
+    <path d="M100 90 L115 90 L115 100"/>
+    <path d="M100 120 L115 120 L115 130"/>
+    <path d="M100 150 L115 150"/>
+  </g>
+  
+  <!-- Circuit nodes with glow -->
+  <g filter="url(#glow)">
+    <!-- Main nodes -->
+    <circle cx="100" cy="60" r="5" fill="#60D5FA" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="100" cy="160" r="5" fill="#60D5FA" stroke="#FFFFFF" stroke-width="1.5"/>
+    
+    <!-- Left branch nodes -->
+    <circle cx="85" cy="75" r="4" fill="#86EFAC" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="85" cy="85" r="4" fill="#86EFAC" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="85" cy="105" r="4" fill="#FCD34D" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="85" cy="115" r="4" fill="#FCD34D" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="85" cy="135" r="4" fill="#60D5FA" stroke="#FFFFFF" stroke-width="1.5"/>
+    
+    <!-- Right branch nodes -->
+    <circle cx="115" cy="90" r="4" fill="#86EFAC" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="115" cy="100" r="4" fill="#86EFAC" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="115" cy="120" r="4" fill="#FCD34D" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="115" cy="130" r="4" fill="#FCD34D" stroke="#FFFFFF" stroke-width="1.5"/>
+    <circle cx="115" cy="150" r="4" fill="#60D5FA" stroke="#FFFFFF" stroke-width="1.5"/>
+  </g>
+  
+  <!-- Additional glow effects on key nodes -->
+  <circle cx="100" cy="60" r="8" fill="#60D5FA" opacity="0.3"/>
+  <circle cx="100" cy="160" r="8" fill="#60D5FA" opacity="0.3"/>
+</svg>
