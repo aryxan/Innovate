@@ -12,7 +12,7 @@
 
 *Predict. Alert. Protect. — Before the Flood Hits.*
 
-🔗 **[Live Demo →](https://innovate-inky.vercel.app)**
+🔗 **[Live Demo →](https://innovate-27vz.vercel.app/)**
 
 </div>
 
