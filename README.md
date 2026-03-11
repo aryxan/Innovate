@@ -3,12 +3,16 @@
 <img src="https://img.shields.io/badge/Status-Hackathon%202026-blueviolet?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Domain-Urban%20Flood%20Prediction-0077B6?style=for-the-badge" />
 <img src="https://img.shields.io/badge/AI-GIS%20Integrated-02C39A?style=for-the-badge" />
+<a href="https://github.com/aryxan/Innovate"><img src="https://img.shields.io/badge/GitHub-aryxan%2FInnovate-181717?style=for-the-badge&logo=github" /></a>
+<a href="https://innovate-inky.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-Vercel-000000?style=for-the-badge&logo=vercel" /></a>
 
 # 🌊 JalRakshak AI
 ### GIS-Integrated Urban Flood Prediction System
 **Pre-Monsoon Readiness Edition · India Innovates 2026**
 
 *Predict. Alert. Protect. — Before the Flood Hits.*
+
+🔗 **[Live Demo →](https://innovate-inky.vercel.app)**
 
 </div>
 
@@ -21,10 +25,12 @@
 - [Solution](#-solution)
 - [Key Features](#-key-features)
 - [System Architecture](#-system-architecture)
+- [Project Structure](#-project-structure)
 - [Technology Stack](#-technology-stack)
 - [Novel Data Inputs](#-novel-data-inputs)
 - [Proactive Response Layer](#-proactive-response-layer)
 - [Getting Started](#-getting-started)
+- [Documentation](#-documentation)
 - [References](#-references)
 - [Team](#-team)
 
@@ -131,18 +137,38 @@ JalRakshak AI delivers a **full-stack flood intelligence system**:
 
 ---
 
+## 📁 Project Structure
+
+```
+Innovate/
+├── frontend/                            # JavaScript frontend (React/Next.js)
+│   └── ...                              # UI, maps, AR visualisation, dashboards
+├── backend/                             # Python backend
+│   └── ...                              # Flood prediction engine, NLP, APIs
+├── ADMIN_SYSTEM_GUIDE.md                # Admin panel & system management guide
+├── HYBRID_MAPPING_GUIDE.md              # GIS hybrid mapping implementation
+├── HYDROLOGICAL_INTELLIGENCE_SYSTEM.md # Hydrological model documentation
+├── MULTI_LAYER_MAP_IMPLEMENTATION.md   # Multi-layer map feature docs
+├── .gitignore
+└── README.md
+```
+
+---
+
 ## 🛠 Technology Stack
 
 | Category | Technologies |
 |---|---|
+| **Frontend** | JavaScript (React / Next.js) — deployed on Vercel |
+| **Backend** | Python — flood prediction engine, NLP pipeline, REST APIs |
 | **Computer Vision** | YOLOv8 (Ultralytics) — waterlogging detection on CCTV/dashcam |
-| **NLP / AI** | Multilingual flood signal detection pipeline (Hindi, Marathi, Bengali, Tamil) |
-| **Geospatial** | GIS ward-level mapping, DEM terrain tiles, Manning's equation |
+| **NLP / AI** | Multilingual flood signal detection (Hindi, Marathi, Bengali, Tamil) |
+| **Geospatial / Mapping** | GIS multi-layer ward mapping, DEM terrain tiles, Manning's equation |
 | **Satellite Data** | ISRO Bhuvan, ESA Sentinel-1 SAR (nightly soil moisture ingestion) |
 | **Augmented Reality** | ARCore (Android), ARKit (iOS) |
 | **Citizen Engagement** | WhatsApp Business API, SMS Gateway |
 | **Data Sources** | IMD Rain Forecast API, Twitter/X API, Facebook API, ULBS Asset Registers |
-| **Dashboard** | Gamified web portal with geo-tagged photo proof & public leaderboard |
+| **Deployment** | Vercel (Frontend) |
 
 ---
 
@@ -168,25 +194,33 @@ JalRakshak AI is not just a prediction system — it's a **response orchestratio
 
 ## 🚀 Getting Started
 
-> ⚠️ This project was developed for hackathon demonstration. Full deployment instructions will be added post-event.
+### Prerequisites
+
+- Node.js 18+ (frontend)
+- Python 3.9+ (backend)
+
+### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/jalrakshak-ai/jalrakshak.git
-cd jalrakshak
+git clone https://github.com/aryxan/Innovate.git
+cd Innovate
 
-# Install dependencies
+# Setup frontend
+cd frontend
+npm install
+npm run dev
+
+# Setup backend (in a new terminal)
+cd ../backend
 pip install -r requirements.txt
-
-# Configure environment variables
-cp .env.example .env
-# Add your IMD API key, WhatsApp Business API credentials, etc.
-
-# Run the prediction engine
 python src/main.py
 ```
 
-**Environment Variables Required:**
+### Environment Variables
+
+Create a `.env` file in the `backend/` directory:
+
 ```
 IMD_API_KEY=your_imd_api_key
 WHATSAPP_API_TOKEN=your_whatsapp_token
@@ -196,10 +230,23 @@ SENTINEL_API_KEY=your_copernicus_key
 
 ---
 
+## 📖 Documentation
+
+| Document | Description |
+|---|---|
+| [ADMIN_SYSTEM_GUIDE.md](./ADMIN_SYSTEM_GUIDE.md) | Admin panel setup and system management |
+| [HYBRID_MAPPING_GUIDE.md](./HYBRID_MAPPING_GUIDE.md) | GIS hybrid mapping implementation |
+| [HYDROLOGICAL_INTELLIGENCE_SYSTEM.md](./HYDROLOGICAL_INTELLIGENCE_SYSTEM.md) | Hydrological model and flood prediction logic |
+| [MULTI_LAYER_MAP_IMPLEMENTATION.md](./MULTI_LAYER_MAP_IMPLEMENTATION.md) | Multi-layer map feature implementation |
+
+---
+
 ## 📚 References
 
 | Resource | Link |
 |---|---|
+| **Project Repository** | [github.com/aryxan/Innovate](https://github.com/aryxan/Innovate) |
+| **Live Demo** | [innovate-inky.vercel.app](https://innovate-inky.vercel.app) |
 | ISRO Bhuvan Geoportal | [bhuvan.nrsc.gov.in](https://bhuvan.nrsc.gov.in) |
 | ESA Copernicus Sentinel-1 SAR | [sentinel.esa.int](https://sentinel.esa.int) |
 | IMD Rain Forecast API | [mausam.imd.gov.in](https://mausam.imd.gov.in) |
@@ -216,7 +263,12 @@ SENTINEL_API_KEY=your_copernicus_key
 
 **JalRakshak AI** — India Innovates Hackathon 2026
 
-> Add your team member names and affiliations here.
+> Team Members:
+> Aryan Gupta
+> Divyansh Lalotra
+> Siddharth Arora
+> Anish Vaddan
+> Bhavesh Nayyar
 
 ---
 
