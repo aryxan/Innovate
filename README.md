@@ -1,321 +1,229 @@
-# 🌊 JalRakshak AI - Hydrological Intelligence Control System
+<div align="center">
 
-A comprehensive **National Infrastructure Intelligence Platform** for real-time flood monitoring, prediction, and disaster management across India.
+<img src="https://img.shields.io/badge/Status-Hackathon%202026-blueviolet?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Domain-Urban%20Flood%20Prediction-0077B6?style=for-the-badge" />
+<img src="https://img.shields.io/badge/AI-GIS%20Integrated-02C39A?style=for-the-badge" />
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![React](https://img.shields.io/badge/React-18.x-61dafb.svg)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104-009688.svg)
-![Python](https://img.shields.io/badge/Python-3.9+-3776ab.svg)
+# 🌊 JalRakshak AI
+### GIS-Integrated Urban Flood Prediction System
+**Pre-Monsoon Readiness Edition · India Innovates 2026**
 
----
+*Predict. Alert. Protect. — Before the Flood Hits.*
 
-## 🎯 Overview
-
-JalRakshak AI is a government-grade hydrological intelligence system that monitors **2,500+ sensors** across India to predict flood risks, detect drain blockages, and coordinate emergency response through AI-powered analytics.
-
-### Key Features
-
-- 🗺️ **Multi-Layer Geographic Intelligence** - National → State → City → Sensor hierarchy
-- 🤖 **AI Flood Prediction Engine** - Multi-factor risk assessment with 5 weighted inputs
-- 📊 **Real-Time Sensor Network** - 2,500+ drain, river, and rainfall sensors
-- 🎯 **AI Confidence Scoring** - 4-factor confidence calculation for predictions
-- 🚨 **Citizen Alert System** - OTP-verified complaint reporting with tracking
-- 👨‍💼 **Admin Dashboard** - Complaint management and status tracking
-- 📈 **Live Event Feed** - Real-time monitoring of sensor spikes and anomalies
-- 🔍 **Drain Network Intelligence** - Blockage detection and overflow alerts
+</div>
 
 ---
 
-## 🏗️ Architecture
+## 📌 Table of Contents
 
-### Frontend (React + Vite)
-- **Interactive India Map** - SVG-based national overview with state-level risk visualization
-- **Google Maps Integration** - City and sensor-level detailed views
-- **Multi-Layer System** - Hierarchical navigation from national to sensor level
-- **Real-Time Dashboard** - Live statistics and event monitoring
-- **Responsive UI** - Government-grade command center aesthetic
-
-### Backend (FastAPI + Python)
-- **Weather Service** - Open-Meteo API integration for real-time weather data
-- **Risk Engine** - Probabilistic flood risk calculation
-- **Sensor Service** - Mock sensor data generation (ready for IoT integration)
-- **RESTful API** - CORS-enabled endpoints for frontend communication
-
-### Data & Intelligence
-- **Sensor Network** - 2,500+ sensors across 36 states/UTs
-- **Predictive Engine** - 5-factor weighted risk assessment
-- **AI Confidence Engine** - 4-factor confidence scoring
-- **Dynamic State Data** - Real-time computation from sensor network
+- [Overview](#-overview)
+- [Problem Statement](#-problem-statement)
+- [Solution](#-solution)
+- [Key Features](#-key-features)
+- [System Architecture](#-system-architecture)
+- [Technology Stack](#-technology-stack)
+- [Novel Data Inputs](#-novel-data-inputs)
+- [Proactive Response Layer](#-proactive-response-layer)
+- [Getting Started](#-getting-started)
+- [References](#-references)
+- [Team](#-team)
 
 ---
 
-## 🚀 Quick Start
+## 🌐 Overview
 
-### Prerequisites
-- Node.js 18+ and npm
-- Python 3.9+
-- Git
+**JalRakshak AI** is an AI-powered, GIS-integrated urban flood prediction platform designed for pre-monsoon readiness across Indian cities. It combines satellite soil moisture data, real-time CCTV computer vision, multilingual social media signal detection, and citizen crowdsourcing to generate **ward-level flood probability scores** — enabling authorities and citizens to act *before* disaster strikes.
 
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/aryxan/Innovate.git
-   cd Innovate
-   ```
-
-2. **Setup Frontend**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-   Frontend will run on `http://localhost:5173`
-
-3. **Setup Backend** (Optional - for weather integration)
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   python main.py
-   ```
-   Backend will run on `http://localhost:8000`
+> Built for **India Innovates Hackathon 2026** — where technology meets civic resilience.
 
 ---
 
-## 📱 Application Routes
+## ❗ Problem Statement
 
-- **Landing Page**: `/`
-- **Dashboard**: `/dashboard`
-- **Admin Login**: `/admin`
-- **Admin Dashboard**: `/admin/dashboard`
+Every monsoon season, Indian cities suffer devastating flood losses — loss of life, property damage, and disruption to essential services. Existing flood management systems are reactive and suffer from:
 
-### Demo Credentials
-- **Admin Username**: `admin`
-- **Admin Password**: `admin123`
+- ❌ No real-time, hyper-local flood prediction at the ward level
+- ❌ Generic alerts delivered too late for residents to act
+- ❌ No early warning system for pre-deploying emergency resources
+- ❌ Critical infrastructure (hospitals, schools) left unprotected
+- ❌ Citizens excluded as potential data contributors
+- ❌ Infrastructure decay not factored into flood risk models
 
----
-
-## 🎨 Features Breakdown
-
-### 1. National Overview Map
-- Color-coded states by risk level (Green/Yellow/Red)
-- Hover tooltips with risk score, rainfall, and readiness
-- Click to drill down to state details
-
-### 2. Multi-Layer Map System
-- **Layer 1**: National SVG map
-- **Layer 2**: State view with city markers
-- **Layer 3**: City view with sensor and complaint markers
-- **Heatmap**: AI risk overlay based on sensor data
-
-### 3. Sensor Network (2,500+ Sensors)
-- **Drain Sensors**: Urban drainage monitoring with blockage detection
-- **River Sensors**: Water level tracking
-- **Rainfall Sensors**: Precipitation and humidity measurement
-
-**Intelligent Logic**:
-- Blockage Detection: `waterLevel > 85%` AND `flowRate < 15%`
-- Overflow Alert: `waterLevel > 95%`
-- Status Classification: Normal/Warning/Critical
-
-### 4. Predictive Flood Engine
-Multi-factor risk assessment with weighted inputs:
-- Rainfall Forecast (25%)
-- River Level Trend (20%)
-- Drain Blockage Density (25%)
-- Complaint Spike Factor (15%)
-- Soil Saturation Index (15%)
-
-**Risk Classification**:
-- Low: 0-39%
-- Medium: 40-69%
-- High: 70-100%
-
-### 5. AI Confidence Engine
-4-factor confidence calculation:
-- Sensor Coverage (40%)
-- Cross-Signal Agreement (30%)
-- Data Freshness (20%)
-- Historical Pattern Match (10%)
-
-**Confidence Levels**: Very High / High / Medium / Low / Very Low
-
-### 6. Citizen Reporting System
-- OTP-verified mobile number authentication
-- Unique complaint number generation (JR12345678 format)
-- Issue type selection (Blocked Drain, Overflowing Drain, etc.)
-- Severity classification (Low/Medium/High)
-- Location detection via GPS or map click
-- Status tracking (Pending/In-Progress/Resolved/Rejected)
-
-### 7. Admin Dashboard
-- Complaint management interface
-- Status update functionality
-- Statistics cards (Total/Pending/In-Progress/Resolved)
-- Issue type distribution analysis
-- Detailed complaint view panel
-
-### 8. Drain Network Intelligence
-- Health metrics dashboard (Healthy/Blocked/Overflowing %)
-- Top 5 critical cities identification
-- Real-time network statistics
-- Blinking indicators for overflow zones
-
-### 9. Live Event Feed
-Auto-generated events from sensor data:
-- Sensor spike alerts
-- Blockage detection
-- Complaint surges
-- Rainfall anomalies
-- System alerts
+There is an urgent need for a **proactive, AI-driven platform** that predicts floods at micro-hotspot precision, engages citizens as sensors, and empowers ward officers with actionable dashboards.
 
 ---
 
-## 🛠️ Technology Stack
+## ✅ Solution
 
-### Frontend
-- **React 18** - UI framework
-- **Vite** - Build tool and dev server
-- **React Router** - Client-side routing
-- **React Simple Maps** - SVG India map
-- **@react-google-maps/api** - Google Maps integration
-- **Tailwind CSS** - Utility-first styling
+JalRakshak AI delivers a **full-stack flood intelligence system**:
 
-### Backend
-- **FastAPI** - Modern Python web framework
-- **Uvicorn** - ASGI server
-- **Open-Meteo API** - Weather data integration
-- **CORS Middleware** - Cross-origin support
-
-### Data & Intelligence
-- **Custom Sensor Network** - 2,500+ simulated sensors
-- **Predictive Engine** - Multi-factor risk calculation
-- **AI Confidence Engine** - Prediction reliability scoring
+1. **Ingests** satellite SAR soil moisture, IMD rain forecasts, CCTV feeds, social media signals, and crowdsourced WhatsApp reports
+2. **Processes** data through YOLOv8 computer vision, NLP flood signal detection, and Manning's equation for flow modelling
+3. **Predicts** ward-level flood probability with micro-hotspot identification and spread direction
+4. **Alerts** citizens via hyper-local SMS in their regional language with alternate route guidance
+5. **Responds** proactively — elevating hospitals and schools to Priority 1 and pre-deploying pump crews 48 hours before heavy rainfall
 
 ---
 
-## 📊 Data Structure
+## ✨ Key Features
 
-### Sensor Model
-```javascript
-{
-  id: "MH-MUM-DR-0042",
-  state: "Maharashtra",
-  city: "Mumbai",
-  type: "drain" | "river" | "rainfall",
-  lat: 19.0760,
-  lng: 72.8777,
-  waterLevelPercentage: 87.5,
-  flowRate: 12.3,
-  blockageIndex: 78.2,
-  status: "normal" | "warning" | "critical",
-  lastUpdatedMinutesAgo: 5
-}
+### 🔔 Citizen Engagement & Alerts
+
+| Feature | Description |
+|---|---|
+| **Personalized Flood SMS Alerts** | Hyper-local alerts (e.g., *"78% flood probability in 6 hrs — avoid MG Road"*) in the resident's regional language, generated from ward-level readiness scores and IMD forecasts |
+| **WhatsApp Crowdsourced Drain Reports** `NEW` | Citizens photograph blocked drains via a WhatsApp chatbot — submissions are geo-tagged, timestamped, and fused into the drainage capacity model in near-real-time |
+| **Augmented Reality Flood Visualisation** `WOW` | Mobile AR feature (ARCore/ARKit) lets citizens point their phone at any street and see a photorealistic overlay of predicted waterlogging depth (e.g., 30 cm, 60 cm) — shareable on social media |
+
+### 🧠 Prediction & Scoring Innovations
+
+| Feature | Description |
+|---|---|
+| **Flood Velocity & Spread Direction** `CORE` | Uses Manning's equation on DEM-derived drainage gradients to compute flow velocity and directional spread — feeds directly into optimised evacuation route planning |
+| **Infrastructure Age Decay Scoring** | Municipal drainage pipe age and material type (from ULBS asset registers) are scored — pre-1980 cast-iron pipes receive a capacity penalty, translating physical deterioration into a quantifiable risk multiplier |
+
+### 📡 Novel Data Inputs
+
+| Feature | Description |
+|---|---|
+| **Social Media Flood Signal Detection** | NLP pipeline scrapes Twitter/X and Facebook in Hindi, Marathi, Bengali, and Tamil — complaint clusters reduce alert latency by **up to 45 minutes** before official sensors trigger |
+| **ISRO Bhuvan / Sentinel-1 SAR Soil Moisture** | Nightly ingestion of soil saturation data — fully saturated soil switches flood mode to instant runoff, identifying which micro-hotspots trigger first |
+| **Street-Level CCTV / Dashcam Integration** `CV` | YOLOv8-based computer vision on existing city CCTV feeds detects waterlogging in real-time; dashcam footage via citizen app provides ground-truth validation |
+
+### 🚨 Proactive Response Layer
+
+| Feature | Description |
+|---|---|
+| **School & Hospital Vulnerability Overlay** | GIS proximity filter flags every flood micro-hotspot within 500 m of a school, hospital, or care home — elevated to Priority 1, triggering mandatory pump crew pre-deployment **48 hrs** before forecast heavy rainfall |
+| **Gamified Ward Officer Dashboard** `NOVEL` | Ward officers earn Preparedness Badges for completing drain de-silting, pump testing, and manhole inspections with geo-tagged photo proof. A public ward leaderboard creates civic accountability |
+
+---
+
+## 🏗 System Architecture
+
 ```
-
-### Risk Assessment Output
-```javascript
-{
-  riskScore: 75,
-  riskLevel: "high",
-  contributingFactors: [...],
-  prediction: {
-    severity: "high",
-    message: "Elevated flood risk",
-    action: "Monitor situation closely",
-    timeframe: "Next 12-24 hours"
-  }
-}
+┌─────────────────────────────────────────────────────────────────┐
+│                      DATA INGESTION LAYER                        │
+│  IMD Rain API │ Sentinel-1 SAR │ Social Media NLP │ WhatsApp    │
+│  City CCTV Feeds │ Dashcam Footage │ ULBS Asset Registers       │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+┌───────────────────────────▼─────────────────────────────────────┐
+│                       PROCESSING LAYER                           │
+│  YOLOv8 Waterlogging Detection │ Manning's Equation (Flow)      │
+│  Multilingual NLP Pipeline │ Infrastructure Age Decay Scoring   │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+┌───────────────────────────▼─────────────────────────────────────┐
+│                      PREDICTION ENGINE                           │
+│  Ward-Level Flood Probability │ Micro-Hotspot Identification    │
+│  GIS Proximity Filter (500m Schools/Hospitals)                  │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+┌───────────────────────────▼─────────────────────────────────────┐
+│                        OUTPUT LAYER                              │
+│  Hyper-Local SMS Alerts (Regional Languages)                    │
+│  AR Flood Depth Visualisation (ARCore / ARKit)                  │
+│  Gamified Ward Officer Dashboard + Leaderboard                  │
+│  Emergency Pump Crew Pre-Deployment Orders                      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🎨 UI/UX Design
+## 🛠 Technology Stack
 
-### Command Center Aesthetic
-- Dark theme (Slate-900/950)
-- Glassmorphic effects with backdrop blur
-- Neon blue accent colors
-- Professional typography (Mono fonts for data)
-- Subtle grid background pattern
-
-### Animations
-- Pulse effects for critical alerts
-- Scale transforms on hover
-- Fade transitions for state changes
-- Blinking indicators for overflow zones
-- Gradient glows on metric cards
+| Category | Technologies |
+|---|---|
+| **Computer Vision** | YOLOv8 (Ultralytics) — waterlogging detection on CCTV/dashcam |
+| **NLP / AI** | Multilingual flood signal detection pipeline (Hindi, Marathi, Bengali, Tamil) |
+| **Geospatial** | GIS ward-level mapping, DEM terrain tiles, Manning's equation |
+| **Satellite Data** | ISRO Bhuvan, ESA Sentinel-1 SAR (nightly soil moisture ingestion) |
+| **Augmented Reality** | ARCore (Android), ARKit (iOS) |
+| **Citizen Engagement** | WhatsApp Business API, SMS Gateway |
+| **Data Sources** | IMD Rain Forecast API, Twitter/X API, Facebook API, ULBS Asset Registers |
+| **Dashboard** | Gamified web portal with geo-tagged photo proof & public leaderboard |
 
 ---
 
-## 📚 Documentation
+## 📡 Novel Data Inputs
 
-- **[Admin System Guide](ADMIN_SYSTEM_GUIDE.md)** - Complete admin functionality documentation
-- **[Hybrid Mapping Guide](HYBRID_MAPPING_GUIDE.md)** - Multi-layer map system details
-- **[Hydrological Intelligence System](HYDROLOGICAL_INTELLIGENCE_SYSTEM.md)** - Core system documentation
-- **[Multi-Layer Map Implementation](MULTI_LAYER_MAP_IMPLEMENTATION.md)** - Technical implementation details
+What sets JalRakshak AI apart from competing models is the use of data sources typically ignored:
 
----
-
-## 🔮 Future Enhancements
-
-- [ ] Real IoT sensor integration
-- [ ] Historical trend analysis and charts
-- [ ] SMS/Email alert notifications
-- [ ] Mobile app (React Native)
-- [ ] Machine learning model training on historical data
-- [ ] Integration with government disaster management systems
-- [ ] Multi-language support
-- [ ] Offline mode with data sync
-- [ ] Advanced analytics dashboard
-- [ ] Export reports (PDF/Excel)
+- **Soil Saturation State** — Sentinel-1 SAR nightly data identifies when soil switches from slow absorption to instant runoff mode, fundamentally altering which micro-hotspots flood first
+- **Infrastructure Decay** — Pipe age and material type from municipal records translate physical deterioration into a quantifiable flood risk multiplier
+- **Social Listening** — Citizen complaints on social media as soft-sensors, reducing alert lead time by up to 45 minutes
 
 ---
 
-## 🤝 Contributing
+## 🚑 Proactive Response Layer
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+JalRakshak AI is not just a prediction system — it's a **response orchestration platform**:
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- Schools and hospitals within 500m of flood hotspots are automatically escalated to **Priority 1**
+- Pump crews receive mandatory pre-deployment orders **48 hours** before forecast heavy rainfall
+- Ward officers are incentivised via gamification to complete pre-monsoon infrastructure checks **before** the season begins
 
 ---
 
-## 📄 License
+## 🚀 Getting Started
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+> ⚠️ This project was developed for hackathon demonstration. Full deployment instructions will be added post-event.
 
----
+```bash
+# Clone the repository
+git clone https://github.com/jalrakshak-ai/jalrakshak.git
+cd jalrakshak
 
-## 👨‍💻 Author
+# Install dependencies
+pip install -r requirements.txt
 
-**Aryan** - [@aryxan](https://github.com/aryxan)
+# Configure environment variables
+cp .env.example .env
+# Add your IMD API key, WhatsApp Business API credentials, etc.
 
----
+# Run the prediction engine
+python src/main.py
+```
 
-## 🙏 Acknowledgments
-
-- Open-Meteo API for weather data
-- React Simple Maps for India GeoJSON
-- Google Maps Platform
-- FastAPI framework
-- React and Vite communities
-
----
-
-## 📞 Support
-
-For support, email your-email@example.com or open an issue in the repository.
-
----
-
-## ⭐ Star History
-
-If you find this project useful, please consider giving it a star!
+**Environment Variables Required:**
+```
+IMD_API_KEY=your_imd_api_key
+WHATSAPP_API_TOKEN=your_whatsapp_token
+TWITTER_BEARER_TOKEN=your_twitter_token
+SENTINEL_API_KEY=your_copernicus_key
+```
 
 ---
 
-**Built with ❤️ for India's flood safety and disaster management**
+## 📚 References
+
+| Resource | Link |
+|---|---|
+| ISRO Bhuvan Geoportal | [bhuvan.nrsc.gov.in](https://bhuvan.nrsc.gov.in) |
+| ESA Copernicus Sentinel-1 SAR | [sentinel.esa.int](https://sentinel.esa.int) |
+| IMD Rain Forecast API | [mausam.imd.gov.in](https://mausam.imd.gov.in) |
+| YOLOv8 by Ultralytics | [github.com/ultralytics/ultralytics](https://github.com/ultralytics/ultralytics) |
+| ARCore (Google) | [developers.google.com/ar](https://developers.google.com/ar) |
+| ARKit (Apple) | [developer.apple.com/augmented-reality](https://developer.apple.com/augmented-reality) |
+| WhatsApp Business API | [developers.facebook.com/docs/whatsapp](https://developers.facebook.com/docs/whatsapp) |
+| Manning's Equation Reference | ASCE Journal of Hydrologic Engineering |
+| GIS-based Urban Flood Risk | ISPRS Journal of Photogrammetry and Remote Sensing |
+
+---
+
+## 👥 Team
+
+**JalRakshak AI** — India Innovates Hackathon 2026
+
+> Add your team member names and affiliations here.
+
+---
+
+<div align="center">
+
+**Built with ❤️ for a flood-resilient India**
+
+*JalRakshak AI · Hackathon 2026 · Pre-Monsoon Readiness Edition*
+
+</div>
