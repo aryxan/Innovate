@@ -111,7 +111,11 @@ export async function submitReportToFirebase(
       };
     }
 
-    // Check if Firebase is initialized
+    // Check if Firebase is initialized, try to initialize if not
+    if (!firebaseService.isInitialized()) {
+      await firebaseService.initialize();
+    }
+
     if (!firebaseService.isInitialized()) {
       return {
         success: false,

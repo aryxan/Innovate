@@ -92,36 +92,58 @@ class JalRakshakFirebase {
   private initialized: boolean = false;
   private listeners: Map<string, Unsubscribe> = new Map();
 
+  private initPromise: Promise<boolean> | null = null;
+
   /**
    * Initialize Firebase app and services
    */
   async initialize(): Promise<boolean> {
-    try {
-      if (!hasRequiredFirebaseConfig()) {
-        console.error(
-          "Missing Firebase env vars. Set VITE_FIREBASE_* in .env.local before starting the app.",
-        );
+    // If already initialized, return true
+    if (this.initialized) return true;
+
+    // If currently initializing, return the same promise
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = (async () => {
+      try {
+        const missingVars = [];
+        if (!firebaseConfig.apiKey) missingVars.push("VITE_FIREBASE_API_KEY");
+        if (!firebaseConfig.authDomain) missingVars.push("VITE_FIREBASE_AUTH_DOMAIN");
+        if (!firebaseConfig.projectId) missingVars.push("VITE_FIREBASE_PROJECT_ID");
+        if (!firebaseConfig.storageBucket) missingVars.push("VITE_FIREBASE_STORAGE_BUCKET");
+        if (!firebaseConfig.messagingSenderId) missingVars.push("VITE_FIREBASE_MESSAGING_SENDER_ID");
+        if (!firebaseConfig.appId) missingVars.push("VITE_FIREBASE_APP_ID");
+
+        if (missingVars.length > 0) {
+          console.error(
+            `Missing Firebase env vars: ${missingVars.join(", ")}. Set them in .env.local before starting the app.`,
+          );
+          this.initPromise = null;
+          return false;
+        }
+
+        // Check if Firebase app already exists
+        if (getApps().length > 0) {
+          this.app = getApp();
+        } else {
+          this.app = initializeApp(firebaseConfig);
+        }
+
+        this.db = initializeFirestore(this.app, {
+          experimentalAutoDetectLongPolling: true,
+        });
+        this.storage = getStorage(this.app);
+        this.initialized = true;
+        console.log("Firebase initialized successfully");
+        return true;
+      } catch (error) {
+        console.error("Firebase initialization error:", error);
+        this.initPromise = null;
         return false;
       }
+    })();
 
-      // Check if Firebase app already exists
-      if (getApps().length > 0) {
-        this.app = getApp();
-      } else {
-        this.app = initializeApp(firebaseConfig);
-      }
-
-      this.db = initializeFirestore(this.app, {
-        experimentalAutoDetectLongPolling: true,
-      });
-      this.storage = getStorage(this.app);
-      this.initialized = true;
-      console.log("Firebase initialized successfully");
-      return true;
-    } catch (error) {
-      console.error("Firebase initialization error:", error);
-      return false;
-    }
+    return this.initPromise;
   }
 
   /**

@@ -135,10 +135,13 @@ export default async function handler(req, res) {
   // CORS headers
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,OPTIONS,PATCH,DELETE,POST,PUT",
+  );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
   );
 
   if (req.method === "OPTIONS") {
@@ -151,7 +154,7 @@ export default async function handler(req, res) {
   // Try IMD first
   try {
     const imdUrl = `https://ibm.nightskyimg.com/api/imdweather?type=1&lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&_=${Date.now()}`;
-    
+
     const imdRaw = await fetchJsonWithTimeoutRetry(
       imdUrl,
       {},
@@ -159,7 +162,7 @@ export default async function handler(req, res) {
         timeoutMs: WEATHER_TIMEOUT_MS,
         retries: MAX_RETRIES,
         label: "IMD",
-      }
+      },
     );
 
     const imdData = mapImdPayload(imdRaw);
@@ -189,7 +192,7 @@ export default async function handler(req, res) {
       }
 
       const owmUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&units=metric&appid=${encodeURIComponent(apiKey)}`;
-      
+
       const owmRaw = await fetchJsonWithTimeoutRetry(
         owmUrl,
         {},
@@ -197,7 +200,7 @@ export default async function handler(req, res) {
           timeoutMs: WEATHER_TIMEOUT_MS,
           retries: MAX_RETRIES,
           label: "OpenWeather",
-        }
+        },
       );
 
       const owmData = mapOpenWeatherForecastPayload(owmRaw);
