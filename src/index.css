@@ -1,0 +1,303 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Inter:wght@100..900&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@keyframes slow-rotate {
+  from {
+    transform: perspective(1200px) translate(-50%, -50%) rotateY(0deg) scale(0.75);
+  }
+
+  to {
+    transform: perspective(1200px) translate(-50%, -50%) rotateY(360deg) scale(0.75);
+  }
+}
+
+#map-oversize-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+
+.map-3d-zoomed {
+  transform: perspective(1200px) translate(-50%, -50%) rotateY(0deg) scale(0.75) !important;
+  background: transparent !important;
+}
+
+.map-rotating {
+  animation: slow-rotate 180s linear infinite !important;
+  transform-origin: center center !important;
+}
+
+.leaflet-container {
+  background: #0a1628 !important;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --font-display: "Libre Baskerville", serif;
+
+  --color-saffron: var(--theme-saffron);
+  --color-white: var(--theme-white);
+  --color-india-green: var(--theme-india-green);
+  --color-ashoka-blue: var(--theme-ashoka-blue);
+  --color-water-blue: var(--theme-water-blue);
+  --color-cream: var(--theme-cream);
+  --color-ink: var(--theme-ink);
+  --color-border: var(--theme-border);
+}
+
+@layer base {
+  :root {
+    --theme-saffron: #FF9933;
+    --theme-white: #FFFFFF;
+    --theme-india-green: #138808;
+    --theme-ashoka-blue: #000080;
+    --theme-water-blue: #005B96;
+    --theme-cream: rgba(255, 255, 255, 0.55);
+    --theme-ink: #1e293b;
+    --theme-border: rgba(0, 0, 128, 0.18);
+    --theme-base: #eef1f5;
+  }
+
+  .dark {
+    --theme-saffron: #FACC15;
+    --theme-white: #ffffff;
+    --theme-india-green: #22C55E;
+    --theme-ashoka-blue: #3B82F6;
+    --theme-water-blue: #1A2330;
+    --theme-cream: #121821;
+    --theme-ink: #E6EDF3;
+    --theme-border: rgba(255, 255, 255, 0.05);
+    --theme-base: #0B0F14;
+  }
+
+  body {
+    background-color: var(--theme-base);
+    color: var(--theme-ink);
+    @apply selection:bg-saffron/20;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    
+    /* Desktop Scaling */
+    @media (min-width: 1024px) {
+      zoom: 0.8;
+    }
+    
+    /* Mobile Optimization */
+    @media (max-width: 768px) {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--theme-ashoka-blue);
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Subtle dot pattern */
+.indian-pattern {
+  background-color: transparent;
+  background-image: radial-gradient(var(--color-saffron) 0.5px, transparent 0.5px), radial-gradient(var(--color-india-green) 0.5px, transparent 0.5px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+  opacity: 0.04;
+}
+
+.glass-card {
+  background: var(--theme-white);
+  border: 1px solid var(--theme-border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.dark .glass-card {
+  backdrop-filter: none;
+  background-color: #121821;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Natural section labels - not screaming uppercase */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-ink);
+  opacity: 0.45;
+}
+
+.dark .section-label {
+  color: #9FB0C0;
+  opacity: 1;
+}
+
+.official-header {
+  @apply bg-ashoka-blue text-white border-b-4 border-saffron sticky top-0 z-50 shadow-md;
+}
+
+.dark .official-header {
+  background-color: #0B0F14;
+  border-bottom: 2px solid #3B82F6;
+  backdrop-filter: none;
+}
+
+.saffron-button {
+  @apply bg-saffron hover:bg-saffron/90 text-white shadow-sm transition-all rounded font-medium px-5 py-2 uppercase tracking-wide text-xs;
+}
+
+.dark .saffron-button {
+  background-color: #FACC15;
+  color: #121821;
+}
+
+.indigo-button {
+  @apply bg-ashoka-blue hover:bg-ashoka-blue/90 text-white shadow-sm transition-all rounded font-medium px-5 py-2 uppercase tracking-wide text-xs;
+}
+
+.dark .indigo-button {
+  background-color: #3B82F6;
+  color: #ffffff;
+}
+
+.green-button {
+  @apply bg-india-green hover:bg-india-green/90 text-white shadow-sm transition-all rounded font-medium px-5 py-2 uppercase tracking-wide text-xs;
+}
+
+.dark .green-button {
+  background-color: #22C55E;
+  color: #121821;
+}
+
+.status-safe {
+  @apply bg-india-green/10 text-india-green border border-india-green/20 rounded-md px-2 py-0.5 text-xs font-medium;
+}
+
+.dark .status-safe {
+  background-color: #22C55E;
+  color: #0B0F14;
+  border: none;
+  font-weight: 700;
+}
+
+.status-alert {
+  @apply bg-saffron/10 text-saffron border border-saffron/20 rounded-md px-2 py-0.5 text-xs font-medium;
+}
+
+.dark .status-alert {
+  background-color: #FACC15;
+  color: #0B0F14;
+  border: none;
+  font-weight: 700;
+}
+
+.status-danger {
+  @apply bg-red-500/10 text-red-600 border border-red-500/20 rounded-md px-2 py-0.5 text-xs font-medium;
+}
+
+.dark .status-danger {
+  background-color: #EF4444;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+}
+
+/* Unified Ashoka Chakra Transition System */
+.chakra-sync-base {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.chakra-rotating-element {
+  animation: unified-spin 60s linear infinite;
+  transform-origin: center center;
+}
+
+@keyframes unified-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.small-chakra-spinner {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 0 10px rgba(0, 0, 128, 0.1));
+}
+
+.bg-chakra-rotating {
+  width: 140vh;
+  height: 140vh;
+  opacity: 0.04;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 40s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.visual-mode-enabled {
+  filter: contrast(1.08) saturate(1.06);
+}
+
+.visual-mode-enabled p,
+.visual-mode-enabled li,
+.visual-mode-enabled span,
+.visual-mode-enabled a,
+.visual-mode-enabled button,
+.visual-mode-enabled input,
+.visual-mode-enabled textarea,
+.visual-mode-enabled label {
+  letter-spacing: 0.01em;
+}
+
+.visual-mode-enabled .official-header {
+  border-bottom-width: 6px;
+}
+
+.sign-language-mode .chakra-rotating-element,
+.sign-language-mode .animate-marquee {
+  animation-duration: 80s !important;
+}
+
+.sign-language-mode * {
+  scroll-behavior: auto !important;
+}
