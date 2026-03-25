@@ -55,10 +55,13 @@ export default async function handler(req, res) {
   // CORS headers
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,OPTIONS,PATCH,DELETE,POST,PUT",
+  );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
   );
 
   if (req.method === "OPTIONS") {
@@ -69,7 +72,7 @@ export default async function handler(req, res) {
   try {
     const cwcUrl =
       "https://ffs.india-water.gov.in/ffm/api/station-water-level-above-warning/";
-    
+
     const cwcData = await fetchJsonWithTimeoutRetry(
       cwcUrl,
       {
@@ -84,7 +87,7 @@ export default async function handler(req, res) {
         timeoutMs: FLOOD_TIMEOUT_MS,
         retries: MAX_RETRIES,
         label: "CWC",
-      }
+      },
     );
 
     floodCache.data = Array.isArray(cwcData) ? cwcData : [];
@@ -112,10 +115,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // Return error if no cache available
-    return res.status(503).json({
-      success: false,
-      message: "Flood data service unavailable",
+    // Return safe empty payload so the UI can stay usable during upstream outages.
+    return res.json({
+      success: true,
+      source: "fallback-empty",
+      cached: false,
+      data: [],
+      updatedAt: new Date().toISOString(),
+      warning: "Flood data service temporarily unavailable",
     });
   }
 }

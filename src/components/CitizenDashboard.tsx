@@ -1000,7 +1000,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       }
     } catch (error) {
       setHasLiveFloodData(false);
-      handleApiError("flood", "Flood telemetry could not be loaded.");
+      showToast(
+        "Live flood telemetry is unavailable right now. Showing baseline map data.",
+        "error",
+      );
     } finally {
       setIsFloodDataLoading(false);
     }
