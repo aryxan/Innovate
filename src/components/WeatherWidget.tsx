@@ -257,9 +257,11 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
 
   const isCloudyCondition = weather.current.isIMD
     ? (weather.current.weatherCode >= 1 && weather.current.weatherCode <= 12) ||
-      (weather.current.weatherCode >= 20 && weather.current.weatherCode <= 21) ||
+      (weather.current.weatherCode >= 20 &&
+        weather.current.weatherCode <= 21) ||
       (weather.current.weatherCode >= 50 && weather.current.weatherCode <= 65)
-    : (weather.current.weatherCode > 800 && weather.current.weatherCode < 900) ||
+    : (weather.current.weatherCode > 800 &&
+        weather.current.weatherCode < 900) ||
       (weather.current.weatherCode >= 200 && weather.current.weatherCode < 700);
 
   return (
@@ -293,17 +295,29 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
               <motion.div
                 className={`absolute -bottom-4 -left-10 w-44 h-20 rounded-full blur-md ${displayIsDay ? "bg-white/70" : "bg-slate-200/35"}`}
                 animate={{ x: [0, 24, 0] }}
-                transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 11,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               />
               <motion.div
                 className={`absolute  bottom-1 right-[-30px] w-48 h-24 rounded-full blur-md ${displayIsDay ? "bg-white/65" : "bg-slate-100/28"}`}
                 animate={{ x: [0, -18, 0] }}
-                transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 9,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               />
               <motion.div
                 className={`absolute bottom-8 right-8 w-24 h-10 rounded-full blur-sm ${displayIsDay ? "bg-white/70" : "bg-slate-200/28"}`}
                 animate={{ x: [0, 10, 0] }}
-                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 7,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               />
             </>
           )}
@@ -395,7 +409,8 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
               }`}
             >
               <div className="flex items-center gap-1">
-                <Wind className="w-3 h-3" /> {weather.current.windSpeed.toFixed(1)}
+                <Wind className="w-3 h-3" />{" "}
+                {weather.current.windSpeed.toFixed(1)}
                 km/h
               </div>
               <div className="flex items-center gap-1">
@@ -487,10 +502,18 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                             )}
                       </div>
                       <div className="group-hover:scale-110 transition-transform duration-300">
-                        {getWeatherIcon(day.weatherCode, true, weather.current.isIMD)}
+                        {getWeatherIcon(
+                          day.weatherCode,
+                          true,
+                          weather.current.isIMD,
+                        )}
                       </div>
                       <div className="text-xs text-ink/60 font-medium">
-                        {getWeatherDesc(day.weatherCode, t, weather.current.isIMD)}
+                        {getWeatherDesc(
+                          day.weatherCode,
+                          t,
+                          weather.current.isIMD,
+                        )}
                       </div>
                     </div>
 

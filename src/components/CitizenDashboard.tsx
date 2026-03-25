@@ -82,7 +82,10 @@ import {
   trackReportById,
   subscribeToReportUpdates,
 } from "../services/reportTrackingUtils";
-import { firebaseService, initializeFirebase } from "../services/firebaseService";
+import {
+  firebaseService,
+  initializeFirebase,
+} from "../services/firebaseService";
 import {
   MapContainer,
   TileLayer,
@@ -144,8 +147,7 @@ const generateTrendData = (baseLevel: number) => {
 
 const SparklingTrend = ({ data }: { data: any[] }) => {
   const hasTrend = data.length > 1;
-  const isRising =
-    hasTrend && data[data.length - 1].level > data[0].level;
+  const isRising = hasTrend && data[data.length - 1].level > data[0].level;
 
   return (
     <div
@@ -157,9 +159,7 @@ const SparklingTrend = ({ data }: { data: any[] }) => {
           type="monotone"
           dataKey="level"
           stroke={isRising ? "#f97316" : "#22c55e"}
-          fill={
-            isRising ? "rgba(249, 115, 22, 0.1)" : "rgba(34, 197, 94, 0.1)"
-          }
+          fill={isRising ? "rgba(249, 115, 22, 0.1)" : "rgba(34, 197, 94, 0.1)"}
           strokeWidth={2}
           dot={false}
         />
@@ -271,10 +271,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [districtName, setDistrictName] = useState("India");
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  const uiText: Record<
-    string,
-    Record<Language, string>
-  > = {
+  const uiText: Record<string, Record<Language, string>> = {
     select: {
       en: "Select",
       hi: "चुनें",
@@ -574,7 +571,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [otp, setOtp] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
-  const [otpStatus, setOtpStatus] = useState<"idle" | "sent" | "verified" | "error">("idle");
+  const [otpStatus, setOtpStatus] = useState<
+    "idle" | "sent" | "verified" | "error"
+  >("idle");
   const [otpStatusMessage, setOtpStatusMessage] = useState("");
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [isSafetyFetching, setIsSafetyFetching] = useState(false);
@@ -623,7 +622,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const isPrefixedReference = (value: string) =>
     /^[A-Z]{2}[A-Z0-9]{9}$/.test(value.toUpperCase());
 
-  const saveReportReferenceMapping = (referenceId: string, complaintId: string) => {
+  const saveReportReferenceMapping = (
+    referenceId: string,
+    complaintId: string,
+  ) => {
     try {
       const existing = localStorage.getItem(REPORT_REF_MAP_KEY);
       const parsed = existing ? JSON.parse(existing) : {};
@@ -709,11 +711,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         const sessionKey = "jalrakshak_ai_visitor_session_counted";
         const sessionIdKey = "jalrakshak_ai_visitor_session_id";
 
-        const hasCountedThisSession = sessionStorage.getItem(sessionKey) === "1";
+        const hasCountedThisSession =
+          sessionStorage.getItem(sessionKey) === "1";
         let sessionId = sessionStorage.getItem(sessionIdKey);
         if (!sessionId) {
           sessionId =
-            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+            typeof crypto !== "undefined" &&
+            typeof crypto.randomUUID === "function"
               ? crypto.randomUUID()
               : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
           sessionStorage.setItem(sessionIdKey, sessionId);
@@ -2278,7 +2282,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         )}
       </AnimatePresence>
 
-      {!isLoading && <div className="fixed inset-0 indian-pattern pointer-events-none" />}
+      {!isLoading && (
+        <div className="fixed inset-0 indian-pattern pointer-events-none" />
+      )}
 
       <header className="official-header">
         {isSignLanguageEnabled && (
@@ -3216,7 +3222,11 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                       </td>
                                       <td className="py-4 px-4">
                                         <SparklingTrend
-                                          data={trendSeriesByStation[station.name] || []}
+                                          data={
+                                            trendSeriesByStation[
+                                              station.name
+                                            ] || []
+                                          }
                                         />
                                       </td>
                                       <td className="py-4 px-4">
@@ -3274,8 +3284,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             >
                               <Zap className="w-4 h-4" />
                               {notificationsEnabled
-                                ? ui("criticalAlertsEnabled", "Critical Alerts Enabled")
-                                : ui("enableBrowserAlerts", "Enable Browser Alerts")}
+                                ? ui(
+                                    "criticalAlertsEnabled",
+                                    "Critical Alerts Enabled",
+                                  )
+                                : ui(
+                                    "enableBrowserAlerts",
+                                    "Enable Browser Alerts",
+                                  )}
                             </button>
                             <button className="w-full py-2.5 bg-white text-[#0B3A68] rounded-sm text-[10px] font-bold uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
                               <Smartphone className="w-4 h-4" />{" "}
@@ -3319,7 +3335,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               t.advisory3,
                               t.advisory4,
                             ].map((item, idx) => (
-                              <p key={idx} className="text-sm font-bold text-ink leading-tight min-h-[44px]">
+                              <p
+                                key={idx}
+                                className="text-sm font-bold text-ink leading-tight min-h-[44px]"
+                              >
                                 {item}
                               </p>
                             ))}
@@ -4948,7 +4967,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                             className="h-full bg-[#0B3A68]"
                                             initial={{ width: "0%" }}
                                             animate={{ width: "100%" }}
-                                            transition={{ duration: 1.2, ease: "easeOut" }}
+                                            transition={{
+                                              duration: 1.2,
+                                              ease: "easeOut",
+                                            }}
                                           />
                                         </div>
                                         <p className="mt-1 text-[10px] tracking-normal normal-case font-semibold opacity-80">
@@ -5496,13 +5518,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 name: missingPersonData.name,
                                 age: missingPersonData.age,
                                 gender: missingPersonData.gender,
-                                lastSeenLocation: missingPersonData.lastSeenLocation,
-                                physicalFeatures: missingPersonData.physicalFeatures,
+                                lastSeenLocation:
+                                  missingPersonData.lastSeenLocation,
+                                physicalFeatures:
+                                  missingPersonData.physicalFeatures,
                                 contactName: missingPersonData.contactName,
                                 contactPhone: missingPersonData.contactPhone,
                               },
                             };
-                            setReliefRequests((prev) => [requestDetails, ...prev]);
+                            setReliefRequests((prev) => [
+                              requestDetails,
+                              ...prev,
+                            ]);
                             if (onAddReport)
                               onAddReport({
                                 id: ref,
@@ -5798,10 +5825,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                   experience: volunteerData.experience,
                                   availability: volunteerData.availability,
                                   tools: volunteerData.tools,
-                                  district: volunteerData.district || districtName,
+                                  district:
+                                    volunteerData.district || districtName,
                                 },
                               };
-                              setReliefRequests((prev) => [requestDetails, ...prev]);
+                              setReliefRequests((prev) => [
+                                requestDetails,
+                                ...prev,
+                              ]);
                               if (onAddReport)
                                 onAddReport({
                                   id: ref,
@@ -6025,7 +6056,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                   preferredMode: counselorData.preferredMode,
                                 },
                               };
-                              setReliefRequests((prev) => [requestDetails, ...prev]);
+                              setReliefRequests((prev) => [
+                                requestDetails,
+                                ...prev,
+                              ]);
                               if (onAddReport)
                                 onAddReport({
                                   id: ref,
@@ -6178,57 +6212,56 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
       {/* Unified Success Modal */}
       <AnimatePresence>
-        {successModal.show && (
+        {successModal.show &&
           (() => {
             const successMeta = getSuccessMeta(successModal.type || "missing");
             return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-ashoka-blue/60 backdrop-blur-md"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 30 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-white rounded-sm p-10 max-w-md w-full shadow-sm text-center border border-slate-300"
-            >
-              <div className="w-20 h-20 bg-india-green/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="w-10 h-10 text-india-green" />
-              </div>
-              <h3 className="text-2xl font-display font-bold text-ashoka-blue mb-2 uppercase">
-                {successMeta.title}
-              </h3>
-              <p className="text-xs text-ink/60 mb-8 font-mono uppercase tracking-widest">
-                {successMeta.subtitle}
-              </p>
-
-              <div className="bg-slate-50 border border-slate-300 rounded-sm p-6 mb-8">
-                <span className="text-[9px] font-black text-ashoka-blue/40 uppercase tracking-[0.2em] block mb-2">
-                  Internal 11-Character Reference
-                </span>
-                <span className="text-3xl font-black text-ashoka-blue tracking-[0.25em]">
-                  {successModal.ref}
-                </span>
-              </div>
-
-              <p className="text-xs text-ink/70 leading-relaxed mb-8">
-                {successMeta.caption}
-              </p>
-
-              <button
-                onClick={() =>
-                  setSuccessModal({ show: false, type: null, ref: "" })
-                }
-                className="w-full bg-[#0B3A68] text-white py-4 rounded-sm font-bold uppercase tracking-widest text-xs hover:bg-[#082a4d] transition-all font-mono border border-[#0B3A68] shadow-sm"
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-ashoka-blue/60 backdrop-blur-md"
               >
-                CLOSE BROADCAST
-              </button>
-            </motion.div>
-          </motion.div>
+                <motion.div
+                  initial={{ scale: 0.9, y: 30 }}
+                  animate={{ scale: 1, y: 0 }}
+                  className="bg-white rounded-sm p-10 max-w-md w-full shadow-sm text-center border border-slate-300"
+                >
+                  <div className="w-20 h-20 bg-india-green/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle2 className="w-10 h-10 text-india-green" />
+                  </div>
+                  <h3 className="text-2xl font-display font-bold text-ashoka-blue mb-2 uppercase">
+                    {successMeta.title}
+                  </h3>
+                  <p className="text-xs text-ink/60 mb-8 font-mono uppercase tracking-widest">
+                    {successMeta.subtitle}
+                  </p>
+
+                  <div className="bg-slate-50 border border-slate-300 rounded-sm p-6 mb-8">
+                    <span className="text-[9px] font-black text-ashoka-blue/40 uppercase tracking-[0.2em] block mb-2">
+                      Internal 11-Character Reference
+                    </span>
+                    <span className="text-3xl font-black text-ashoka-blue tracking-[0.25em]">
+                      {successModal.ref}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-ink/70 leading-relaxed mb-8">
+                    {successMeta.caption}
+                  </p>
+
+                  <button
+                    onClick={() =>
+                      setSuccessModal({ show: false, type: null, ref: "" })
+                    }
+                    className="w-full bg-[#0B3A68] text-white py-4 rounded-sm font-bold uppercase tracking-widest text-xs hover:bg-[#082a4d] transition-all font-mono border border-[#0B3A68] shadow-sm"
+                  >
+                    CLOSE BROADCAST
+                  </button>
+                </motion.div>
+              </motion.div>
             );
-          })()
-        )}
+          })()}
       </AnimatePresence>
 
       <GlassErrorModal
@@ -6251,11 +6284,29 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             {[
               { city: "Pune", high: "37.0°C", low: "19.8°C", rain: "0.0 mm" },
               { city: "Mumbai", high: "34.2°C", low: "25.0°C", rain: "0.0 mm" },
-              { city: "New Delhi", high: "31.7°C", low: "16.4°C", rain: "0.0 mm" },
-              { city: "Kolkata", high: "31.9°C", low: "24.6°C", rain: "0.0 mm" },
-              { city: "Chennai", high: "34.3°C", low: "24.6°C", rain: "0.0 mm" },
+              {
+                city: "New Delhi",
+                high: "31.7°C",
+                low: "16.4°C",
+                rain: "0.0 mm",
+              },
+              {
+                city: "Kolkata",
+                high: "31.9°C",
+                low: "24.6°C",
+                rain: "0.0 mm",
+              },
+              {
+                city: "Chennai",
+                high: "34.3°C",
+                low: "24.6°C",
+                rain: "0.0 mm",
+              },
             ].map((item) => (
-              <div key={item.city} className="rounded-lg border border-white/15 bg-white/5 px-4 py-3">
+              <div
+                key={item.city}
+                className="rounded-lg border border-white/15 bg-white/5 px-4 py-3"
+              >
                 <p className="text-lg font-bold">{item.city}</p>
                 <p className="text-sm font-semibold mt-2">
                   {item.high} <span className="opacity-70">|</span> {item.low}
@@ -6358,10 +6409,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
         <div className="w-full px-6 lg:px-12 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-xs text-white/80">
           <p>
-            Copyright © 2026 JalRakshak AI. All rights reserved. Proudly Made in India.
+            Copyright © 2026 JalRakshak AI. All rights reserved. Proudly Made in
+            India.
           </p>
           <p className="text-white/60">
-            Built for public safety coordination, flood preparedness, and emergency response awareness.
+            Built for public safety coordination, flood preparedness, and
+            emergency response awareness.
           </p>
         </div>
       </footer>

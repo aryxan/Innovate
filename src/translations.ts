@@ -1,14 +1,14 @@
-export type Language = 'en' | 'hi' | 'bn' | 'mr' | 'te' | 'ta' | 'gu' | 'pa';
+export type Language = "en" | "hi" | "bn" | "mr" | "te" | "ta" | "gu" | "pa";
 
 export const languageOptions = [
-  { code: 'en', name: 'English' },
-  { code: 'hi', name: 'हिन्दी' },
-  { code: 'bn', name: 'বাংলা' },
-  { code: 'mr', name: 'मराठी' },
-  { code: 'te', name: 'తెలుగు' },
-  { code: 'ta', name: 'தமிழ்' },
-  { code: 'gu', name: 'ગુજરાતી' },
-  { code: 'pa', name: 'ਪੰਜਾਬੀ' }
+  { code: "en", name: "English" },
+  { code: "hi", name: "हिन्दी" },
+  { code: "bn", name: "বাংলা" },
+  { code: "mr", name: "मराठी" },
+  { code: "te", name: "తెలుగు" },
+  { code: "ta", name: "தமிழ்" },
+  { code: "gu", name: "ગુજરાતી" },
+  { code: "pa", name: "ਪੰਜਾਬੀ" },
 ] as const;
 
 export const translations: Record<Language, Record<string, string>> = {
@@ -31,7 +31,8 @@ export const translations: Record<Language, Record<string, string>> = {
     yourAreaSafety: "Your Area Safety",
     checkMyArea: "Check My Area",
     change: "Change",
-    enableLocationMsg: "Enable location to receive personalized safety alerts for your specific neighborhood.",
+    enableLocationMsg:
+      "Enable location to receive personalized safety alerts for your specific neighborhood.",
     riverLevel: "River Level",
     rising: "Rising",
     rainfall: "Rainfall",
@@ -68,7 +69,8 @@ export const translations: Record<Language, Record<string, string>> = {
     fiveDayForecast: "5-Day Forecast",
     atmosphericProjections: "Atmospheric Projections",
     today: "Today",
-    weatherInsights: "High-altitude wind patterns suggest stable conditions for the next 48 hours. No immediate flood triggers detected in current projections.",
+    weatherInsights:
+      "High-altitude wind patterns suggest stable conditions for the next 48 hours. No immediate flood triggers detected in current projections.",
     progressReport: "Progress Report",
     workInProgress: "Work in Progress",
     trackRecord: "Track Record",
@@ -84,7 +86,8 @@ export const translations: Record<Language, Record<string, string>> = {
     danger: "Danger",
     trend: "Trend",
     instantAlerts: "Instant Alerts",
-    subscribeAlertsMsg: "Subscribe to hyper-local WhatsApp and SMS alerts for your neighborhood.",
+    subscribeAlertsMsg:
+      "Subscribe to hyper-local WhatsApp and SMS alerts for your neighborhood.",
     subscribeWhatsApp: "Subscribe via WhatsApp",
     subscribeSMS: "Subscribe via SMS",
     safetyAdvisory: "Safety Advisory",
@@ -100,20 +103,24 @@ export const translations: Record<Language, Record<string, string>> = {
     police: "Police",
     gisRiskMap: "GIS Risk Map",
     cwcMonitoringStation: "CWC Monitoring Station",
-    gisLayersMsg: "Interactive GIS layers are being synchronized with real-time CWC telemetry data.",
+    gisLayersMsg:
+      "Interactive GIS layers are being synchronized with real-time CWC telemetry data.",
     mapLoading: "Interactive GIS Map Loading...",
     chooseLanguage: "Choose Your Language",
-    selectLanguageMsg: "Select a language to continue. You can also enable accessibility features for easier navigation.",
+    selectLanguageMsg:
+      "Select a language to continue. You can also enable accessibility features for easier navigation.",
     myReports: "My Reports",
     recentActivity: "Recent Activity",
     reportSubmitted: "Report Submitted",
-    reportSubmittedMsg: "Thank you for your civic contribution. Your report has been logged and sent to the local disaster management cell.",
+    reportSubmittedMsg:
+      "Thank you for your civic contribution. Your report has been logged and sent to the local disaster management cell.",
     submitAnotherReport: "Submit Another Report",
     incidentLocation: "Incident Location",
     locationCaptured: "Location Captured",
     autoDetectLocation: "Auto-Detect Location",
     addressLandmark: "Full Address / Landmark",
-    addressPlaceholder: "Enter specific details to help responders find the location...",
+    addressPlaceholder:
+      "Enter specific details to help responders find the location...",
     contactVerification: "Contact Verification",
     mobileNumberPlaceholder: "10-digit Mobile Number",
     resendOtp: "Resend OTP",
@@ -131,12 +138,16 @@ export const translations: Record<Language, Record<string, string>> = {
     submitReport: "Submit Report",
     submitting: "Submitting...",
     severeFlood: "Severe Flood Situation",
-    severeFloodDesc: "Water level is above Danger Level. Immediate evacuation of low-lying areas is advised.",
+    severeFloodDesc:
+      "Water level is above Danger Level. Immediate evacuation of low-lying areas is advised.",
     aboveWarning: "Above Warning Level",
-    aboveWarningDesc: "River level is rising and has crossed the Warning Level. Stay alert for further updates.",
+    aboveWarningDesc:
+      "River level is rising and has crossed the Warning Level. Stay alert for further updates.",
     normalFlood: "Normal Flood Situation",
-    normalFloodDesc: "River levels are within normal limits. No immediate threat detected.",
-    helpAuthorities: "Help authorities by providing real-time ground information",
+    normalFloodDesc:
+      "River levels are within normal limits. No immediate threat detected.",
+    helpAuthorities:
+      "Help authorities by providing real-time ground information",
     reportFlooding: "Report Flooding",
     address: "Address",
     city: "City",
@@ -156,7 +167,7 @@ export const translations: Record<Language, Record<string, string>> = {
     missingPerson: "Missing Persons",
     volunteerNetwork: "Volunteer Network",
     crisisCounseling: "Crisis Counseling",
-    yourImpact: "Your Impact"
+    yourImpact: "Your Impact",
   },
   hi: {
     portalTitle: "जलरक्षक",
@@ -214,7 +225,8 @@ export const translations: Record<Language, Record<string, string>> = {
     fiveDayForecast: "5-दिन का पूर्वानुमान",
     atmosphericProjections: "वायुमंडलीय अनुमान",
     today: "आज",
-    weatherInsights: "उच्च ऊंचाई वाले हवा के पैटर्न अगले 48 घंटों के लिए स्थिर स्थितियों का सुझाव देते हैं। वर्तमान अनुमानों में तत्काल बाढ़ का कोई खतरा नहीं पाया गया है।",
+    weatherInsights:
+      "उच्च ऊंचाई वाले हवा के पैटर्न अगले 48 घंटों के लिए स्थिर स्थितियों का सुझाव देते हैं। वर्तमान अनुमानों में तत्काल बाढ़ का कोई खतरा नहीं पाया गया है।",
     progressReport: "प्रगति रिपोर्ट",
     workInProgress: "काम प्रगति पर है",
     trackRecord: "ट्रैक रिकॉर्ड",
@@ -230,7 +242,8 @@ export const translations: Record<Language, Record<string, string>> = {
     danger: "खतरा",
     trend: "रुझान",
     instantAlerts: "तत्काल अलर्ट",
-    subscribeAlertsMsg: "अपने पड़ोस के लिए हाइपर-लोकल व्हाट्सएप और एसएमएस अलर्ट की सदस्यता लें।",
+    subscribeAlertsMsg:
+      "अपने पड़ोस के लिए हाइपर-लोकल व्हाट्सएप और एसएमएस अलर्ट की सदस्यता लें।",
     subscribeWhatsApp: "व्हाट्सएप के माध्यम से सदस्यता लें",
     subscribeSMS: "एसएमएस के माध्यम से सदस्यता लें",
     safetyAdvisory: "सुरक्षा सलाह",
@@ -246,14 +259,17 @@ export const translations: Record<Language, Record<string, string>> = {
     police: "पुलिस",
     gisRiskMap: "जीआईएस जोखिम मानचित्र",
     cwcMonitoringStation: "सीडब्ल्यूसी निगरानी स्टेशन",
-    gisLayersMsg: "इंटरैक्टिव जीआईएस परतों को वास्तविक समय सीडब्ल्यूसी टेलीमेट्री डेटा के साथ सिंक्रनाइज़ किया जा रहा है।",
+    gisLayersMsg:
+      "इंटरैक्टिव जीआईएस परतों को वास्तविक समय सीडब्ल्यूसी टेलीमेट्री डेटा के साथ सिंक्रनाइज़ किया जा रहा है।",
     mapLoading: "इंटरैक्टिव जीआईएस मानचित्र लोड हो रहा है...",
     chooseLanguage: "अपनी भाषा चुनें",
-    selectLanguageMsg: "जारी रखने के लिए एक भाषा चुनें। आप आसान नेविगेशन के लिए एक्सेसिबिलिटी फीचर्स भी सक्षम कर सकते हैं।",
+    selectLanguageMsg:
+      "जारी रखने के लिए एक भाषा चुनें। आप आसान नेविगेशन के लिए एक्सेसिबिलिटी फीचर्स भी सक्षम कर सकते हैं।",
     myReports: "मेरी रिपोर्ट",
     recentActivity: "हाल की गतिविधि",
     reportSubmitted: "रिपोर्ट प्राप्त हुई",
-    reportSubmittedMsg: "आपकी नागरिक भागीदारी के लिए धन्यवाद। आपकी रिपोर्ट दर्ज कर ली गई है और स्थानीय आपदा प्रबंधन सेल को भेज दी गई है।",
+    reportSubmittedMsg:
+      "आपकी नागरिक भागीदारी के लिए धन्यवाद। आपकी रिपोर्ट दर्ज कर ली गई है और स्थानीय आपदा प्रबंधन सेल को भेज दी गई है।",
     submitAnotherReport: "एक और रिपोर्ट भेजें",
     incidentLocation: "घटना का स्थान",
     locationCaptured: "स्थान मिल गया",
@@ -277,11 +293,14 @@ export const translations: Record<Language, Record<string, string>> = {
     submitReport: "रिपोर्ट भेजें",
     submitting: "भेजा जा रहा है...",
     severeFlood: "गंभीर बाढ़ की स्थिति",
-    severeFloodDesc: "जल स्तर खतरे के निशान से ऊपर है। निचले इलाकों को तुरंत खाली करने की सलाह दी जाती है।",
+    severeFloodDesc:
+      "जल स्तर खतरे के निशान से ऊपर है। निचले इलाकों को तुरंत खाली करने की सलाह दी जाती है।",
     aboveWarning: "चेतावनी स्तर से ऊपर",
-    aboveWarningDesc: "नदी का जल स्तर बढ़ रहा है और चेतावनी स्तर को पार कर गया है। आगे के अपडेट के लिए सतर्क रहें।",
+    aboveWarningDesc:
+      "नदी का जल स्तर बढ़ रहा है और चेतावनी स्तर को पार कर गया है। आगे के अपडेट के लिए सतर्क रहें।",
     normalFlood: "सामान्य बाढ़ की स्थिति",
-    normalFloodDesc: "नदी का जल स्तर सामान्य सीमा के भीतर है। कोई तात्कालिक खतरा नहीं पाया गया।",
+    normalFloodDesc:
+      "नदी का जल स्तर सामान्य सीमा के भीतर है। कोई तात्कालिक खतरा नहीं पाया गया।",
     helpAuthorities: "सटीक जानकारी साझा करके अधिकारियों की मदद करें",
     reportFlooding: "बाढ़ की रिपोर्ट करें",
     address: "पता",
@@ -302,7 +321,7 @@ export const translations: Record<Language, Record<string, string>> = {
     missingPerson: "गुमशुदा व्यक्ति",
     volunteerNetwork: "स्वयंसेवक नेटवर्क",
     crisisCounseling: "संकट परामर्श",
-    yourImpact: "आपका प्रभाव"
+    yourImpact: "आपका प्रभाव",
   },
   bn: {
     portalTitle: "জলরক্ষক",
@@ -423,7 +442,8 @@ export const translations: Record<Language, Record<string, string>> = {
     submitReport: "জমা দিন",
     submitting: "জমা হচ্ছে...",
     severeFlood: "মারাত্মক বন্যা পরিস্থিতি",
-    severeFloodDesc: "জলের স্তর বিপদের চিহ্নের উপরে। অবিলম্বে নিরাপদ স্থানে যান।",
+    severeFloodDesc:
+      "জলের স্তর বিপদের চিহ্নের উপরে। অবিলম্বে নিরাপদ স্থানে যান।",
     aboveWarning: "সতর্কতা স্তরের উপরে",
     aboveWarningDesc: "নদীর স্তর সতর্কতার উপরে। সতর্ক থাকুন।",
     normalFlood: "স্বাভাবিক",
@@ -448,7 +468,7 @@ export const translations: Record<Language, Record<string, string>> = {
     missingPerson: "নিখোঁজ ব্যক্তি",
     volunteerNetwork: "স্বেচ্ছাসেবক নেটওয়ার্ক",
     crisisCounseling: "সংকট পরামর্শ",
-    yourImpact: "আপনার প্রভাব"
+    yourImpact: "আপনার প্রভাব",
   },
   mr: {
     portalTitle: "जल-रक्षक",
@@ -594,7 +614,7 @@ export const translations: Record<Language, Record<string, string>> = {
     missingPerson: "बेपत्ता व्यक्ती",
     volunteerNetwork: "स्वयंसेवक नेटवर्क",
     crisisCounseling: "संकट समुपदेशन",
-    yourImpact: "तुमचा प्रभाव"
+    yourImpact: "तुमचा प्रभाव",
   },
   te: {
     portalTitle: "జలరక్షక్",
@@ -740,7 +760,7 @@ export const translations: Record<Language, Record<string, string>> = {
     missingPerson: "తప్పిపోయిన వ్యక్తులు",
     volunteerNetwork: "స్వచ్ఛంద నెట్‌వర్క్",
     crisisCounseling: "సంక్షోభ కౌన్సెలింగ్",
-    yourImpact: "మీ ప్రభావం"
+    yourImpact: "మీ ప్రభావం",
   },
   ta: {
     portalTitle: "ஜலரக்ஷக்",
@@ -886,7 +906,7 @@ export const translations: Record<Language, Record<string, string>> = {
     missingPerson: "காணாமல் போனவர்கள்",
     volunteerNetwork: "தன்னார்வ நெட்வொர்க்",
     crisisCounseling: "நெருக்கடி ஆலோசனை",
-    yourImpact: "உங்கள் தாக்கம்"
+    yourImpact: "உங்கள் தாக்கம்",
   },
   gu: {
     portalTitle: "જલરક્ષક",
@@ -1032,7 +1052,7 @@ export const translations: Record<Language, Record<string, string>> = {
     missingPerson: "ગાયબ વ્યક્તિઓ",
     volunteerNetwork: "સ્વયંસેવક નેટવર્ક",
     crisisCounseling: "સંકટ કાઉન્સેલિંગ",
-    yourImpact: "તમારો પ્રભાવ"
+    yourImpact: "તમારો પ્રભાવ",
   },
   pa: {
     portalTitle: "ਜਲਰਕਸ਼ਕ",
@@ -1178,6 +1198,6 @@ export const translations: Record<Language, Record<string, string>> = {
     missingPerson: "ਲਾਪਤਾ ਵਿਅਕਤੀ",
     volunteerNetwork: "ਵਲੰਟੀਅਰ ਨੈੱਟਵਰਕ",
     crisisCounseling: "ਸੰਕਟ ਕਾਉਂਸਲਿੰਗ",
-    yourImpact: "ਤੁਹਾਡਾ ਪ੍ਰਭਾਵ"
+    yourImpact: "ਤੁਹਾਡਾ ਪ੍ਰਭਾਵ",
   },
 };
