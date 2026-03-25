@@ -1,3 +1,0 @@
-@echo off
-echo Starting JalRakshak AI Backend...
-python main.py
