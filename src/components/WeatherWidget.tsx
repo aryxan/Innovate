@@ -166,7 +166,8 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   selectedLanguage,
 }) => {
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    import.meta.env.VITE_API_BASE_URL ||
+    (typeof window !== "undefined" ? window.location.origin : "");
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
