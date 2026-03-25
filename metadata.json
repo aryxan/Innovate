@@ -1,0 +1,8 @@
+{
+  "name": "JalRakshak AI",
+  "description": "AI-powered urban flood prediction and pre-monsoon readiness platform for Indian cities.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
