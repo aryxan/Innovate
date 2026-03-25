@@ -1,0 +1,20 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_API_BASE_URL": "@api_base_url",
+    "FRONTEND_ORIGIN": "@frontend_origin",
+    "OPENWEATHER_API_KEY": "@openweather_api_key"
+  },
+  "regions": ["iad1"],
+  "functions": {
+    "api/flood-data.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    },
+    "api/weather.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
+}
