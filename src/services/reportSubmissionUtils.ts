@@ -125,19 +125,9 @@ export async function submitReportToFirebase(
 
     onProgress?.("Uploading image...");
 
-    // Process image with watermark (GPS + Timestamp)
-    let processedImage = formData.image!;
-    try {
-      onProgress?.("Processing forensic watermark...");
-      processedImage = await processImageWithWatermark(
-        formData.image!,
-        formData.latitude,
-        formData.longitude,
-        formData.address
-      );
-    } catch (processError) {
-      console.warn("Watermarking failed, uploading original:", processError);
-    }
+    // Forensic metadata is already captured in Firestore document.
+    // Bypassing canvas watermarking to ensure high-speed transmission for large mission files.
+    const processedImage = formData.image!;
 
     // Upload image
     const timestamp = Date.now();
