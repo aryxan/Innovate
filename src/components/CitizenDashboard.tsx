@@ -662,11 +662,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [adminProgressUpdates, setAdminProgressUpdates] = useState<any[]>([]);
   const [commandCenterStatus, setCommandCenterStatus] = useState<string>("OPERATIONAL");
   const [operationalUpdates, setOperationalUpdates] = useState<any[]>([]);
-  const [generatedComplaintId, setGeneratedComplaintId] = useState<
-    string | null
-  >(null);
   const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
   const [isRefreshingProgress, setIsRefreshingProgress] = useState(false);
+  const [radarTimestamps, setRadarTimestamps] = useState<number[]>([]);
+  const [radarIndex, setRadarIndex] = useState(0);
+  const [isMapOrbiting, setIsMapOrbiting] = useState(false);
+  const orbitIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const radarIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   interface MappedStation {
     name: string;
@@ -1627,6 +1629,69 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     showToast("Command Mission Telemetry Synchronized", "success");
   };
 
+  // RainViewer Telemetry Sync
+  useEffect(() => {
+    fetch("https://api.rainviewer.com/public/weather-maps.json")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.radar && data.radar.past) {
+          const timestamps = data.radar.past.map((item: any) => item.time);
+          setRadarTimestamps(timestamps);
+          setRadarIndex(timestamps.length - 1);
+        }
+      });
+  }, []);
+
+  // Radar Animation Loop
+  useEffect(() => {
+    if (mapLayer === "radar" && radarTimestamps.length > 0) {
+      radarIntervalRef.current = setInterval(() => {
+        setRadarIndex((prev) => (prev + 1) % radarTimestamps.length);
+      }, 1000);
+    } else {
+      if (radarIntervalRef.current) clearInterval(radarIntervalRef.current);
+    }
+    return () => {
+      if (radarIntervalRef.current) clearInterval(radarIntervalRef.current);
+    };
+  }, [mapLayer, radarTimestamps.length]);
+
+  const stopMapOrbit = () => {
+    setIsMapOrbiting(false);
+    if (orbitIntervalRef.current) {
+      clearInterval(orbitIntervalRef.current);
+      orbitIntervalRef.current = null;
+    }
+  };
+
+  const startMapOrbit = (center: [number, number]) => {
+    stopMapOrbit();
+    setIsMapOrbiting(true);
+    let angle = 0;
+    const radius = 0.002; // Small radius for subtle orbiting
+    
+    orbitIntervalRef.current = setInterval(() => {
+      if (!mapRef) return;
+      angle += 0.02;
+      const newLat = center[0] + radius * Math.cos(angle);
+      const newLng = center[1] + radius * Math.sin(angle);
+      mapRef.panTo([newLat, newLng], { animate: true, duration: 0.1 });
+    }, 100);
+  };
+
+  // Stop orbiting if user interacts with the map
+  useEffect(() => {
+    if (!mapRef) return;
+    mapRef.on("dragstart", stopMapOrbit);
+    mapRef.on("zoomstart", stopMapOrbit);
+    mapRef.on("click", stopMapOrbit);
+    return () => {
+      mapRef.off("dragstart", stopMapOrbit);
+      mapRef.off("zoomstart", stopMapOrbit);
+      mapRef.off("click", stopMapOrbit);
+    };
+  }, [mapRef]);
+
 
   const riverStations = mappedStations;
   const riverMonitoringStations = showAllRivers
@@ -2278,7 +2343,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
     setTimeout(() => {
       if (mapRef) {
-        mapRef.flyTo([lat, lng], 14, { animate: true, duration: 2.5 });
+        mapRef.flyTo([lat, lng], 15, { animate: true, duration: 3 });
+        
+        // Start slow orbital rotation after fly-in
+        setTimeout(() => {
+          startMapOrbit([lat, lng]);
+        }, 3200);
       }
     }, 900);
   };
@@ -3739,16 +3809,17 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     <div className="h-[650px] w-full relative z-0 overflow-hidden rounded-sm bg-slate-100">
                       <div className="w-full h-full relative">
                         <MapContainer
-                          bounds={[
-                            [6.5, 68.0],
-                            [37.5, 97.5],
-                          ]}
+                          center={position || [20.5937, 78.9629]}
+                          zoom={position ? 15 : 5}
                           style={{ height: "100%", width: "100%" }}
                           ref={setMapRef}
                           zoomControl={false}
                           scrollWheelZoom={true}
                           dragging={true}
                           maxZoom={18}
+                          zoomSnap={0.1}
+                          zoomDelta={0.5}
+                          wheelPxPerZoomLevel={60}
                         >
                           <TileLayer
                             attribution="Imagery &copy; Esri, USGS, NASA"
@@ -3756,6 +3827,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             maxZoom={19}
                             opacity={1}
                           />
+
+                          {mapLayer === "radar" && radarTimestamps.length > 0 && (
+                            <TileLayer
+                              url={`https://tilecache.rainviewer.com/v2/radar/${radarTimestamps[radarIndex]}/256/{z}/{x}/{y}/2/1_1.png`}
+                              opacity={0.7}
+                              zIndex={100}
+                            />
+                          )}
 
                           {/* Precise User Mission Pin - Restored */}
                           {position && (
