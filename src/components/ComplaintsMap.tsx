@@ -46,22 +46,41 @@ export const ComplaintsMap: React.FC<ComplaintsMapProps> = ({
 
   // Subscribe to real-time complaints
   useEffect(() => {
-    try {
-      setIsLoading(true);
-      const unsubscribe = firebaseService.subscribeToComplaints((data) => {
-        setComplaints(data);
-        setError(null);
-        setIsLoading(false);
-      });
+    let unsubscribe: (() => void) | null = null;
+    let isMounted = true;
 
-      return () => {
+    const startSubscription = async () => {
+      try {
+        setIsLoading(true);
+        // Ensure Firebase is initialized before subscribing
+        await firebaseService.initialize();
+        
+        if (!isMounted) return;
+
+        unsubscribe = firebaseService.subscribeToComplaints((data) => {
+          if (isMounted) {
+            setComplaints(data);
+            setError(null);
+            setIsLoading(false);
+          }
+        });
+      } catch (err) {
+        if (isMounted) {
+          console.error("Error subscribing to complaints:", err);
+          setError("Failed to load map data. Please check your connection.");
+          setIsLoading(false);
+        }
+      }
+    };
+
+    startSubscription();
+
+    return () => {
+      isMounted = false;
+      if (unsubscribe) {
         unsubscribe();
-      };
-    } catch (err) {
-      console.error("Error subscribing to complaints:", err);
-      setError("Failed to load map data");
-      setIsLoading(false);
-    }
+      }
+    };
   }, []);
 
   // Filter complaints based on selected filters

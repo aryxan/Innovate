@@ -7,6 +7,7 @@
 import { initializeApp, FirebaseApp, getApps, getApp } from "firebase/app";
 import {
   initializeFirestore,
+  getFirestore,
   Firestore,
   collection,
   addDoc,
@@ -28,6 +29,7 @@ import {
   uploadBytes,
   getDownloadURL,
   deleteObject,
+  FirebaseStorage,
 } from "firebase/storage";
 
 // Firebase Configuration
@@ -38,17 +40,7 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
-
-const hasRequiredFirebaseConfig = () => {
-  return Boolean(
-    firebaseConfig.apiKey &&
-    firebaseConfig.authDomain &&
-    firebaseConfig.projectId &&
-    firebaseConfig.storageBucket &&
-    firebaseConfig.messagingSenderId &&
-    firebaseConfig.appId,
-  );
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Types
@@ -81,14 +73,14 @@ export interface ComplaintReport {
 
 export interface FirebaseService {
   db: Firestore | null;
-  storage: any;
+  storage: FirebaseStorage | null;
   initialized: boolean;
 }
 
 class JalRakshakFirebase {
   private app: FirebaseApp | null = null;
   private db: Firestore | null = null;
-  private storage: any = null;
+  private storage: FirebaseStorage | null = null;
   private initialized: boolean = false;
   private listeners: Map<string, Unsubscribe> = new Map();
 
@@ -98,8 +90,8 @@ class JalRakshakFirebase {
    * Initialize Firebase app and services
    */
   async initialize(): Promise<boolean> {
-    // If already initialized, return true
-    if (this.initialized) return true;
+    // If already initialized and services are present, return true
+    if (this.initialized && this.app && this.db) return true;
 
     // If currently initializing, return the same promise
     if (this.initPromise) return this.initPromise;
@@ -123,15 +115,28 @@ class JalRakshakFirebase {
         }
 
         // Check if Firebase app already exists
-        if (getApps().length > 0) {
-          this.app = getApp();
+        const apps = getApps();
+        if (apps.length > 0) {
+          this.app = apps[0];
         } else {
           this.app = initializeApp(firebaseConfig);
         }
 
-        this.db = initializeFirestore(this.app, {
-          experimentalAutoDetectLongPolling: true,
-        });
+        // Initialize Firestore with a fallback to getFirestore if already initialized
+        try {
+          // First attempt a clean initialization with specific settings
+          this.db = initializeFirestore(this.app, {
+            experimentalAutoDetectLongPolling: true,
+          });
+        } catch (e: any) {
+          // If already initialized (common during HMR), use getFirestore
+          if (e.code === 'failed-precondition' || e.message?.includes('already been initialized')) {
+            this.db = getFirestore(this.app);
+          } else {
+            throw e;
+          }
+        }
+
         this.storage = getStorage(this.app);
         this.initialized = true;
         console.log("Firebase initialized successfully");
@@ -146,6 +151,22 @@ class JalRakshakFirebase {
     return this.initPromise;
   }
 
+
+  /**
+   * Internal helper to ensure Firebase is ready
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initialized) {
+      const result = await this.initialize();
+      if (!result) {
+        throw new Error("Firebase failed to initialize. Check environment variables and console for details.");
+      }
+    }
+    if (!this.db) {
+      throw new Error("Firestore not initialized. Please check your Firebase project setup.");
+    }
+  }
+
   /**
    * Upload image to Firebase Storage
    * @param file The image file to upload
@@ -154,8 +175,9 @@ class JalRakshakFirebase {
    */
   async uploadImage(file: File, path: string): Promise<string | null> {
     try {
+      await this.ensureInitialized();
       if (!this.storage) {
-        throw new Error("Firebase Storage not initialized");
+        throw new Error("Firebase Storage not initialized. Please enable it in your Firebase console.");
       }
 
       const storageRef = ref(this.storage, path);
@@ -175,9 +197,7 @@ class JalRakshakFirebase {
     complaint: Omit<ComplaintReport, "id" | "createdAt">,
   ): Promise<string> {
     try {
-      if (!this.db) {
-        throw new Error("Firestore not initialized");
-      }
+      await this.ensureInitialized();
 
       const complaintData = {
         ...complaint,
@@ -205,9 +225,7 @@ class JalRakshakFirebase {
    */
   async getAllComplaints(): Promise<ComplaintReport[]> {
     try {
-      if (!this.db) {
-        throw new Error("Firestore not initialized");
-      }
+      await this.ensureInitialized();
 
       const querySnapshot = await getDocs(collection(this.db, "complaints"));
       return querySnapshot.docs.map(
@@ -233,7 +251,9 @@ class JalRakshakFirebase {
   ): Unsubscribe {
     try {
       if (!this.db) {
-        throw new Error("Firestore not initialized");
+        // Since this is synchronous, we can't await ensureInitialized here easily
+        // but we can check the db and throw a helpful error
+        throw new Error("Firestore not initialized. Call initialize() first.");
       }
 
       const q = query(collection(this.db, "complaints"));
@@ -269,9 +289,7 @@ class JalRakshakFirebase {
    */
   async getComplaintsByPhone(phone: string): Promise<ComplaintReport[]> {
     try {
-      if (!this.db) {
-        throw new Error("Firestore not initialized");
-      }
+      await this.ensureInitialized();
 
       const q = query(
         collection(this.db, "complaints"),
@@ -297,9 +315,7 @@ class JalRakshakFirebase {
    */
   async getComplaintById(id: string): Promise<ComplaintReport | null> {
     try {
-      if (!this.db) {
-        throw new Error("Firestore not initialized");
-      }
+      await this.ensureInitialized();
 
       const docRef = doc(this.db, "complaints", id);
       const snapshot = await getDoc(docRef);
@@ -327,9 +343,7 @@ class JalRakshakFirebase {
     assignedTo?: string,
   ): Promise<void> {
     try {
-      if (!this.db) {
-        throw new Error("Firestore not initialized");
-      }
+      await this.ensureInitialized();
 
       const docRef = doc(this.db, "complaints", complaintId);
       const updateData: any = {
@@ -357,7 +371,7 @@ class JalRakshakFirebase {
   ): Unsubscribe {
     try {
       if (!this.db) {
-        throw new Error("Firestore not initialized");
+        throw new Error("Firestore not initialized. Call initialize() first.");
       }
 
       const docRef = doc(this.db, "complaints", complaintId);
@@ -389,7 +403,7 @@ class JalRakshakFirebase {
   ): Unsubscribe {
     try {
       if (!this.db) {
-        throw new Error("Firestore not initialized");
+        throw new Error("Firestore not initialized. Call initialize() first.");
       }
 
       const q = query(
@@ -428,6 +442,7 @@ class JalRakshakFirebase {
    */
   async deleteImage(imagePath: string): Promise<void> {
     try {
+      await this.ensureInitialized();
       if (!this.storage) {
         throw new Error("Firebase Storage not initialized");
       }
@@ -496,9 +511,7 @@ class JalRakshakFirebase {
    */
   async getVisitorCount(): Promise<number> {
     try {
-      if (!this.db) {
-        throw new Error("Firestore not initialized");
-      }
+      await this.ensureInitialized();
 
       const metricsRef = doc(this.db, "analytics", "visitors");
       const snapshot = await getDoc(metricsRef);
@@ -522,9 +535,7 @@ class JalRakshakFirebase {
     metadata: Record<string, string> = {},
   ): Promise<number> {
     try {
-      if (!this.db) {
-        throw new Error("Firestore not initialized");
-      }
+      await this.ensureInitialized();
 
       const metricsRef = doc(this.db, "analytics", "visitors");
       const sessionRef = doc(this.db, "visitor_sessions", sessionId);

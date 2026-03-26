@@ -72,28 +72,43 @@ export const ComplaintsManager: React.FC<ComplaintsManagerProps> = ({
 
   // Subscribe to real-time complaint updates
   useEffect(() => {
-    const subscribe = async () => {
+    let unsubscribe: (() => void) | null = null;
+    let isMounted = true;
+
+    const startSubscription = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        const unsubscribe = firebaseService.subscribeToComplaints((data) => {
-          setComplaints(data);
-          onComplaintsLoaded?.(data);
-          setIsLoading(false);
-        });
+        // Ensure Firebase is initialized before subscribing
+        await firebaseService.initialize();
 
-        return () => {
-          unsubscribe();
-        };
+        if (!isMounted) return;
+
+        unsubscribe = firebaseService.subscribeToComplaints((data) => {
+          if (isMounted) {
+            setComplaints(data);
+            onComplaintsLoaded?.(data);
+            setIsLoading(false);
+          }
+        });
       } catch (err) {
-        console.error("Error subscribing to complaints:", err);
-        setError("Failed to load complaints. Please refresh the page.");
-        setIsLoading(false);
+        if (isMounted) {
+          console.error("Error subscribing to complaints:", err);
+          setError("Failed to load complaints. Please check your connection and configuration.");
+          setIsLoading(false);
+        }
       }
     };
 
-    subscribe();
+    startSubscription();
+
+    return () => {
+      isMounted = false;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [onComplaintsLoaded]);
 
   // Filter and sort complaints
