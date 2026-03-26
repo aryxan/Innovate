@@ -362,8 +362,8 @@ export const ComplaintsManager: React.FC<ComplaintsManagerProps> = ({
                   {/* Info */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-xs text-slate-400">
-                        {complaint.id?.substring(0, 8)}...
+                      <span className="font-mono text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded border border-blue-500/20">
+                        {complaint.referenceId || complaint.id?.substring(0, 8)}
                       </span>
                       <span className="text-sm font-medium text-white truncate">
                         {complaint.name}
@@ -414,27 +414,103 @@ export const ComplaintsManager: React.FC<ComplaintsManagerProps> = ({
                   exit={{ opacity: 0, height: 0 }}
                   className="border-t border-white/10 px-4 py-4 space-y-4 bg-black/20"
                 >
-                  {/* Image */}
-                  {complaint.imageUrl && (
-                    <div className="relative group">
-                      <img
-                        src={complaint.imageUrl}
-                        alt="Report"
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      <button
-                        onClick={() =>
-                          setShowImageModal({
-                            open: true,
-                            imageUrl: complaint.imageUrl,
-                          })
-                        }
-                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg"
-                      >
-                        <MapIcon className="w-6 h-6 text-white" />
-                      </button>
-                    </div>
-                  )}
+                   {/* Header with Trust Score */}
+                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
+                     <div className="flex items-center gap-3">
+                       <h3 className="text-lg font-display uppercase text-white tracking-wide">
+                         {complaint.category.replace("_", " ")}
+                       </h3>
+                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                         complaint.status === "pending" ? "bg-amber-500/20 text-amber-400" :
+                         complaint.status === "assigned" ? "bg-blue-500/20 text-blue-400" :
+                         "bg-emerald-500/20 text-emerald-400"
+                       }`}>
+                         {complaint.status.toUpperCase()}
+                       </span>
+                     </div>
+                     <div className="text-right">
+                       <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Trust Score</p>
+                       <p className="text-xl font-display text-white">{complaint.trustScore || 0}<span className="text-xs text-slate-500">/100</span></p>
+                     </div>
+                   </div>
+
+                   {/* Reporter Details & Timeline */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                     <div className="space-y-4">
+                       <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                         <Users className="w-3 h-3" /> Reporter Details
+                       </h4>
+                       <div className="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
+                         <div className="w-10 h-10 bg-blue-600/10 rounded-full flex items-center justify-center border border-blue-600/20">
+                           <Users className="w-5 h-5 text-blue-400" />
+                         </div>
+                         <div className="space-y-1">
+                           <p className="text-sm font-bold text-white">{complaint.name}</p>
+                           <p className="text-xs text-slate-400 flex items-center gap-1">
+                             <Phone className="w-3 h-3" /> {complaint.phone}
+                           </p>
+                           <p className="text-[10px] text-slate-500 font-mono italic">
+                             ID: {complaint.userId}
+                           </p>
+                         </div>
+                       </div>
+                     </div>
+
+                     <div className="space-y-4">
+                       <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                         <Clock className="w-3 h-3" /> Log Timeline
+                       </h4>
+                       <div className="space-y-3 pl-2 border-l border-white/5">
+                         {complaint.timeline && complaint.timeline.length > 0 ? (
+                            complaint.timeline.map((log, idx) => (
+                              <div key={idx} className="relative pl-4 pb-1">
+                                <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-blue-600" />
+                                <p className="text-xs font-bold text-slate-300">{log.status.toUpperCase()}</p>
+                                <p className="text-[10px] text-slate-500">{log.message}</p>
+                                <p className="text-[8px] text-blue-500/60 font-mono mt-0.5">
+                                  {formatTimestamp(log.timestamp)}
+                                </p>
+                              </div>
+                            ))
+                         ) : (
+                           <p className="text-xs text-slate-600 italic">No timeline data available</p>
+                         )}
+                         <div className="text-[10px] font-bold p-2 bg-amber-500/5 text-amber-500/70 border border-amber-500/10 rounded">
+                           SLA: EMERGENCY RESPONSE WITHIN 4H
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+
+                   {/* Image */}
+                   {complaint.imageUrl && (
+                     <div className="space-y-4">
+                       <h4 className="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Incident Evidence</h4>
+                       <div className="relative group overflow-hidden rounded-2xl border border-white/5 max-h-[300px]">
+                         <img
+                           src={complaint.imageUrl}
+                           alt="Report"
+                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                           onError={(e) => {
+                             (e.target as HTMLImageElement).src = "https://placehold.co/600x400/1e293b/white?text=Evidence+Not+Available";
+                           }}
+                         />
+                         <button
+                           onClick={() =>
+                             setShowImageModal({
+                               open: true,
+                               imageUrl: complaint.imageUrl!,
+                             })
+                           }
+                           className="absolute inset-0 bg-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                         >
+                           <div className="px-4 py-2 bg-slate-900/80 backdrop-blur-md rounded-full text-xs font-bold text-white border border-white/10 uppercase tracking-widest">
+                             Expand Analysis
+                           </div>
+                         </button>
+                       </div>
+                     </div>
+                   )}
 
                   {/* Description */}
                   <div>

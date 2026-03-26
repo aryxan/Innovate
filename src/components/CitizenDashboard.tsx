@@ -578,6 +578,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [otpStatusMessage, setOtpStatusMessage] = useState("");
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [isSafetyFetching, setIsSafetyFetching] = useState(false);
+
+  const userLat = safetyLocation
+    ? safetyLocation.lat
+    : position
+      ? position[0]
+      : null;
+  const userLng = safetyLocation
+    ? safetyLocation.lng
+    : position
+      ? position[1]
+      : null;
+
   const [showWeatherForecast, setShowWeatherForecast] = useState(false);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -620,8 +632,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     return generated;
   };
 
-  const isPrefixedReference = (value: string) =>
-    /^[A-Z]{2}[A-Z0-9]{9}$/.test(value.toUpperCase());
+  const isPrefixedReference = (value: string) => {
+    const val = value.toUpperCase();
+    return /^[A-Z]{2}[A-Z0-9]{9}$/.test(val) || /^JAL-\d{6}-[A-Z0-9]{3}$/.test(val);
+  };
 
   const saveReportReferenceMapping = (
     referenceId: string,
@@ -1452,16 +1466,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     setNews(verifiedNews);
   }, [districtName]);
 
-  const userLat = safetyLocation
-    ? safetyLocation.lat
-    : position
-      ? position[0]
-      : null;
-  const userLng = safetyLocation
-    ? safetyLocation.lng
-    : position
-      ? position[1]
-      : null;
 
   const mappedStations = useMemo(() => {
     const stations = floodStations.map((fs) => ({
@@ -1678,7 +1682,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         );
 
         if (result.success && result.reportId) {
-          const reportReference = generateInternalRef("RO");
+          const reportReference = result.reportId;
           setIsReporting(false);
           setReportSuccess(true);
           setGeneratedComplaintId(reportReference);

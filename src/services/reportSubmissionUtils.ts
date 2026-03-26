@@ -147,10 +147,15 @@ export async function submitReportToFirebase(
       };
     }
 
+    // Generate a unique reference ID
+    const referenceId = generateReportId();
+    const now = new Date();
+
     onProgress?.("Storing report...");
 
     // Create complaint object
     const complaint: Omit<ComplaintReport, "id" | "createdAt"> = {
+      referenceId,
       userId: `user-${timestamp}`,
       name: formData.name.trim(),
       phone: formData.phone.replace(/\D/g, ""),
@@ -167,6 +172,14 @@ export async function submitReportToFirebase(
       city: formData.city.trim(),
       state: formData.state.trim(),
       pincode: formData.pincode.trim(),
+      trustScore: 75, // Default trust score
+      timeline: [
+        {
+          status: "pending",
+          timestamp: now,
+          message: "Report submitted by citizen via mobile portal",
+        },
+      ],
     };
 
     // Submit to Firestore
@@ -176,7 +189,7 @@ export async function submitReportToFirebase(
 
     return {
       success: true,
-      reportId,
+      reportId: referenceId, // Return the reference ID for the user
     };
   } catch (error) {
     console.error("Error submitting report:", error);

@@ -22,6 +22,9 @@ import {
   Timestamp,
   runTransaction,
   DocumentData,
+  orderBy,
+  limit,
+  setDoc,
 } from "firebase/firestore";
 import {
   getStorage,
@@ -44,8 +47,16 @@ const firebaseConfig = {
 };
 
 // Types
+export interface TimelineLog {
+  status: string;
+  timestamp: any;
+  message: string;
+  user?: string;
+}
+
 export interface ComplaintReport {
   id?: string;
+  referenceId: string;
   userId: string;
   name: string;
   phone: string;
@@ -60,51 +71,46 @@ export interface ComplaintReport {
     | "other";
   waterLevel: "ankle" | "knee" | "waist" | "neck" | "head";
   description: string;
-  imageUrl: string;
+  imageUrl?: string;
   status: "pending" | "assigned" | "resolved";
   severity: "low" | "moderate" | "high";
-  assignedTo: string | null;
-  createdAt: Timestamp | Date;
-  updatedAt?: Timestamp | Date;
-  city?: string;
-  state?: string;
-  pincode?: string;
+  createdAt: any;
+  assignedTo?: string | null;
+  city: string;
+  state: string;
+  pincode: string;
+  trustScore?: number;
+  timeline?: TimelineLog[];
 }
 
-export interface FirebaseService {
-  db: Firestore | null;
-  storage: FirebaseStorage | null;
-  initialized: boolean;
-}
-
-class JalRakshakFirebase {
+export class JalRakshakFirebase {
+  private static instance: JalRakshakFirebase;
   private app: FirebaseApp | null = null;
-  private db: Firestore | null = null;
-  private storage: FirebaseStorage | null = null;
-  private initialized: boolean = false;
-  private listeners: Map<string, Unsubscribe> = new Map();
-
+  public db: Firestore | null = null;
+  public storage: FirebaseStorage | null = null;
   private initPromise: Promise<boolean> | null = null;
 
-  /**
-   * Initialize Firebase app and services
-   */
-  async initialize(): Promise<boolean> {
-    // If already initialized and services are present, return true
-    if (this.initialized && this.app && this.db) return true;
+  private constructor() {}
 
-    // If currently initializing, return the same promise
+  public static getInstance(): JalRakshakFirebase {
+    if (!JalRakshakFirebase.instance) {
+      JalRakshakFirebase.instance = new JalRakshakFirebase();
+    }
+    return JalRakshakFirebase.instance;
+  }
+
+  /**
+   * Initialize Firebase application and services
+   */
+  public async initialize(): Promise<boolean> {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
       try {
         const missingVars = [];
-        if (!firebaseConfig.apiKey) missingVars.push("VITE_FIREBASE_API_KEY");
-        if (!firebaseConfig.authDomain) missingVars.push("VITE_FIREBASE_AUTH_DOMAIN");
-        if (!firebaseConfig.projectId) missingVars.push("VITE_FIREBASE_PROJECT_ID");
-        if (!firebaseConfig.storageBucket) missingVars.push("VITE_FIREBASE_STORAGE_BUCKET");
-        if (!firebaseConfig.messagingSenderId) missingVars.push("VITE_FIREBASE_MESSAGING_SENDER_ID");
-        if (!firebaseConfig.appId) missingVars.push("VITE_FIREBASE_APP_ID");
+        if (!import.meta.env.VITE_FIREBASE_API_KEY) missingVars.push("API_KEY");
+        if (!import.meta.env.VITE_FIREBASE_PROJECT_ID) missingVars.push("PROJECT_ID");
+        if (!import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) missingVars.push("AUTH_DOMAIN");
 
         if (missingVars.length > 0) {
           console.error(
@@ -116,23 +122,18 @@ class JalRakshakFirebase {
           return false;
         }
 
-        // Check if Firebase app already exists
-        const apps = getApps();
-        if (apps.length > 0) {
-          this.app = apps[0];
-        } else {
+        if (!getApps().length) {
           this.app = initializeApp(firebaseConfig);
+        } else {
+          this.app = getApp();
         }
 
-        // Initialize Firestore with a fallback to getFirestore if already initialized
         try {
-          // First attempt a clean initialization with specific settings
           this.db = initializeFirestore(this.app, {
-            experimentalAutoDetectLongPolling: true,
+            ignoreUndefinedProperties: true,
           });
         } catch (e: any) {
-          // If already initialized (common during HMR), use getFirestore
-          if (e.code === 'failed-precondition' || e.message?.includes('already been initialized')) {
+          if (e.code === "failed-precondition" || e.message?.includes("already exists")) {
             this.db = getFirestore(this.app);
           } else {
             throw e;
@@ -140,11 +141,10 @@ class JalRakshakFirebase {
         }
 
         this.storage = getStorage(this.app);
-        this.initialized = true;
         console.log("Firebase initialized successfully");
         return true;
       } catch (error) {
-        console.error("Firebase initialization error:", error);
+        console.error("Firebase failed to initialize:", error);
         this.initPromise = null;
         return false;
       }
@@ -153,247 +153,141 @@ class JalRakshakFirebase {
     return this.initPromise;
   }
 
+  private async ensureInitialized() {
+    if (!this.db || !this.storage) {
+      const success = await this.initialize();
+      if (!success) throw new Error("Firebase service could not be started.");
+    }
+  }
 
   /**
-   * Internal helper to ensure Firebase is ready
+   * Upload an image to Firebase Storage
    */
-  private async ensureInitialized(): Promise<void> {
-    if (!this.initialized) {
-      const result = await this.initialize();
-      if (!result) {
-        throw new Error("Firebase failed to initialize. Check environment variables and console for details.");
-      }
-    }
+  async uploadImage(file: File, path: string): Promise<string> {
+    await this.ensureInitialized();
+    if (!this.storage) throw new Error("Storage not initialized");
+
+    const storageRef = ref(this.storage, path);
+    const snapshot = await uploadBytes(storageRef, file);
+    return getDownloadURL(snapshot.ref);
+  }
+
+  /**
+   * Submit a new complaint to Firestore
+   */
+  async submitComplaint(complaint: Omit<ComplaintReport, "id" | "createdAt">): Promise<string> {
+    await this.ensureInitialized();
+    if (!this.db) throw new Error("Firestore not initialized");
+
+    const complaintsCol = collection(this.db, "complaints");
+    const docRef = await addDoc(complaintsCol, {
+      ...complaint,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+    return docRef.id;
+  }
+
+  /**
+   * Subscribe to real-time complaint updates
+   */
+  subscribeToComplaints(callback: (complaints: ComplaintReport[]) => void): Unsubscribe {
     if (!this.db) {
-      throw new Error("Firestore not initialized. Please check your Firebase project setup.");
+       this.initialize().then(() => {
+         if (this.db) return this.subscribeToComplaints(callback);
+       });
+       return () => {};
     }
+
+    const complaintsCol = collection(this.db, "complaints");
+    const q = query(complaintsCol, orderBy("createdAt", "desc"), limit(100));
+
+    return onSnapshot(q, (snapshot) => {
+      const complaints = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as ComplaintReport[];
+      callback(complaints);
+    });
   }
 
   /**
-   * Upload image to Firebase Storage
-   * @param file The image file to upload
-   * @param path Storage path (e.g., 'complaints/report-id')
-   * @returns URL of uploaded image or null on failure
-   */
-  async uploadImage(file: File, path: string): Promise<string | null> {
-    try {
-      await this.ensureInitialized();
-      if (!this.storage) {
-        throw new Error("Firebase Storage not initialized. Please enable it in your Firebase console.");
-      }
-
-      const storageRef = ref(this.storage, path);
-      const snapshot = await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(snapshot.ref);
-      return url;
-    } catch (error) {
-      console.error("Image upload error:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Submit a new complaint report
-   */
-  async submitComplaint(
-    complaint: Omit<ComplaintReport, "id" | "createdAt">,
-  ): Promise<string> {
-    try {
-      await this.ensureInitialized();
-
-      const complaintData = {
-        ...complaint,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-        severity: this.calculateSeverity(
-          complaint.waterLevel,
-          complaint.category,
-        ),
-      };
-
-      const docRef = await addDoc(
-        collection(this.db, "complaints"),
-        complaintData,
-      );
-      return docRef.id;
-    } catch (error) {
-      console.error("Error submitting complaint:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all complaints (for admin dashboard)
-   */
-  async getAllComplaints(): Promise<ComplaintReport[]> {
-    try {
-      await this.ensureInitialized();
-
-      const querySnapshot = await getDocs(collection(this.db, "complaints"));
-      return querySnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as ComplaintReport,
-      );
-    } catch (error) {
-      console.error("Error fetching complaints:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Subscribe to real-time updates of all complaints
-   * @param callback Function to call when data changes
-   * @returns Unsubscribe function
-   */
-  subscribeToComplaints(
-    callback: (complaints: ComplaintReport[]) => void,
-  ): Unsubscribe {
-    try {
-      if (!this.db) {
-        // Since this is synchronous, we can't await ensureInitialized here easily
-        // but we can check the db and throw a helpful error
-        throw new Error("Firestore not initialized. Call initialize() first.");
-      }
-
-      const q = query(collection(this.db, "complaints"));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const complaints = snapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            }) as ComplaintReport,
-        );
-
-        // Sort by createdAt descending
-        complaints.sort((a, b) => {
-          const aTime = (a.createdAt as Timestamp)?.toMillis?.() || 0;
-          const bTime = (b.createdAt as Timestamp)?.toMillis?.() || 0;
-          return bTime - aTime;
-        });
-
-        callback(complaints);
-      });
-
-      this.listeners.set("allComplaints", unsubscribe);
-      return unsubscribe;
-    } catch (error) {
-      console.error("Error subscribing to complaints:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Query complaints by phone number
+   * Get complaints by phone number (for tracking)
    */
   async getComplaintsByPhone(phone: string): Promise<ComplaintReport[]> {
-    try {
-      await this.ensureInitialized();
+    await this.ensureInitialized();
+    if (!this.db) throw new Error("Firestore not initialized");
 
-      const q = query(
-        collection(this.db, "complaints"),
-        where("phone", "==", phone),
-      );
-      const querySnapshot = await getDocs(q);
+    const complaintsCol = collection(this.db, "complaints");
+    const q = query(complaintsCol, where("phone", "==", phone), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
 
-      return querySnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as ComplaintReport,
-      );
-    } catch (error) {
-      console.error("Error querying complaints by phone:", error);
-      throw error;
-    }
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as ComplaintReport[];
   }
 
   /**
    * Get complaint by ID
    */
   async getComplaintById(id: string): Promise<ComplaintReport | null> {
-    try {
-      await this.ensureInitialized();
+    await this.ensureInitialized();
+    if (!this.db) throw new Error("Firestore not initialized");
 
+    // 1. Try fetching by Firestore Document ID first
+    try {
       const docRef = doc(this.db, "complaints", id);
-      const snapshot = await getDoc(docRef);
-
-      if (!snapshot.exists()) {
-        return null;
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as ComplaintReport;
       }
-
-      return {
-        id: snapshot.id,
-        ...snapshot.data(),
-      } as ComplaintReport;
-    } catch (error) {
-      console.error("Error fetching complaint by ID:", error);
-      throw error;
+    } catch (e) {
+      // Ignore errors (like invalid ID format) and proceed to query
     }
+
+    // 2. Try fetching by referenceId field (JAL- format)
+    const complaintsCol = collection(this.db, "complaints");
+    const q = query(complaintsCol, where("referenceId", "==", id.toUpperCase().trim()));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const firstDoc = snapshot.docs[0];
+      return { id: firstDoc.id, ...firstDoc.data() } as ComplaintReport;
+    }
+
+    return null;
   }
 
   /**
-   * Update complaint status (admin function)
-   */
-  async updateComplaintStatus(
-    complaintId: string,
-    status: "pending" | "assigned" | "resolved",
-    assignedTo?: string,
-  ): Promise<void> {
-    try {
-      await this.ensureInitialized();
-
-      const docRef = doc(this.db, "complaints", complaintId);
-      const updateData: any = {
-        status,
-        updatedAt: Timestamp.now(),
-      };
-
-      if (assignedTo) {
-        updateData.assignedTo = assignedTo;
-      }
-
-      await updateDoc(docRef, updateData);
-    } catch (error) {
-      console.error("Error updating complaint status:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Subscribe to real-time updates of a specific complaint
+   * Subscribe to a single complaint's updates
    */
   subscribeToComplaint(
-    complaintId: string,
+    id: string,
     callback: (complaint: ComplaintReport | null) => void,
   ): Unsubscribe {
-    try {
-      if (!this.db) {
-        throw new Error("Firestore not initialized. Call initialize() first.");
-      }
-
-      const docRef = doc(this.db, "complaints", complaintId);
-      const unsubscribe = onSnapshot(docRef, (snapshot) => {
-        if (snapshot.exists()) {
-          callback({
-            id: snapshot.id,
-            ...snapshot.data(),
-          } as ComplaintReport);
-        } else {
-          callback(null);
-        }
-      });
-
-      this.listeners.set(`complaint-${complaintId}`, unsubscribe);
-      return unsubscribe;
-    } catch (error) {
-      console.error("Error subscribing to complaint:", error);
-      throw error;
+    if (!this.db) {
+      return () => {};
     }
+
+    const docRef = doc(this.db, "complaints", id);
+    return onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        callback({ id: docSnap.id, ...docSnap.data() } as ComplaintReport);
+      } else {
+        // Fallback: search by referenceId
+        const complaintsCol = collection(this.db, "complaints");
+        const q = query(complaintsCol, where("referenceId", "==", id.toUpperCase().trim()));
+        onSnapshot(q, (snapshot) => {
+          if (!snapshot.empty) {
+            const firstDoc = snapshot.docs[0];
+            callback({ id: firstDoc.id, ...firstDoc.data() } as ComplaintReport);
+          } else {
+            callback(null);
+          }
+        });
+      }
+    });
   }
 
   /**
@@ -403,197 +297,118 @@ class JalRakshakFirebase {
     phone: string,
     callback: (complaints: ComplaintReport[]) => void,
   ): Unsubscribe {
-    try {
-      if (!this.db) {
-        throw new Error("Firestore not initialized. Call initialize() first.");
-      }
-
-      const q = query(
-        collection(this.db, "complaints"),
-        where("phone", "==", phone),
-      );
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const complaints = snapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            }) as ComplaintReport,
-        );
-
-        // Sort by createdAt descending
-        complaints.sort((a, b) => {
-          const aTime = (a.createdAt as Timestamp)?.toMillis?.() || 0;
-          const bTime = (b.createdAt as Timestamp)?.toMillis?.() || 0;
-          return bTime - aTime;
-        });
-
-        callback(complaints);
-      });
-
-      this.listeners.set(`phone-${phone}`, unsubscribe);
-      return unsubscribe;
-    } catch (error) {
-      console.error("Error subscribing to complaints by phone:", error);
-      throw error;
+    if (!this.db) {
+      return () => {};
     }
+
+    const complaintsCol = collection(this.db, "complaints");
+    const q = query(complaintsCol, where("phone", "==", phone), orderBy("createdAt", "desc"));
+
+    return onSnapshot(q, (snapshot) => {
+      const complaints = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as ComplaintReport[];
+      callback(complaints);
+    });
   }
 
   /**
-   * Delete image from storage
+   * Update complaint status (admin function)
    */
-  async deleteImage(imagePath: string): Promise<void> {
+  async updateComplaintStatus(
+    id: string,
+    status: "pending" | "assigned" | "resolved",
+    assignedTo?: string,
+  ): Promise<void> {
+    await this.ensureInitialized();
+    if (!this.db) throw new Error("Firestore not initialized");
+
+    const complaintRef = doc(this.db, "complaints", id);
+    const now = new Date();
+    
+    // Get existing doc to update timeline
+    const snap = await getDoc(complaintRef);
+    const existingData = snap.data() as ComplaintReport;
+    const timeline = existingData?.timeline || [];
+    
+    const newLog: TimelineLog = {
+      status,
+      timestamp: now,
+      message: assignedTo 
+        ? `Status updated to ${status} and assigned to ${assignedTo}`
+        : `Status updated to ${status}`,
+    };
+
+    await updateDoc(complaintRef, {
+      status,
+      assignedTo: assignedTo || null,
+      updatedAt: Timestamp.now(),
+      timeline: [...timeline, newLog]
+    });
+  }
+
+  /**
+   * Record a visitor visit with metadata
+   */
+  async recordVisitorVisit(sessionId: string, metadata: any): Promise<number> {
     try {
       await this.ensureInitialized();
-      if (!this.storage) {
-        throw new Error("Firebase Storage not initialized");
-      }
+      if (!this.db) return 0;
 
-      const imageRef = ref(this.storage, imagePath);
-      await deleteObject(imageRef);
-    } catch (error) {
-      console.error("Error deleting image:", error);
-      throw error;
+      const statsRef = doc(this.db, "analytics", "visitor_stats");
+      const sessionRef = doc(this.db, "analytics", "sessions", "history", sessionId);
+
+      await runTransaction(this.db, async (transaction) => {
+        const statsSnap = await transaction.get(statsRef);
+        const sessionSnap = await transaction.get(sessionRef);
+
+        if (!sessionSnap.exists()) {
+          // Increment total visit count ONLY if this is a new session
+          if (!statsSnap.exists()) {
+            transaction.set(statsRef, { count: 1, lastVisit: Timestamp.now() });
+          } else {
+            transaction.update(statsRef, {
+              count: (statsSnap.data()?.count || 0) + 1,
+              lastVisit: Timestamp.now(),
+            });
+          }
+          // Log the session details
+          transaction.set(sessionRef, {
+            ...metadata,
+            timestamp: Timestamp.now()
+          });
+        }
+      });
+
+      const finalSnap = await getDoc(statsRef);
+      return finalSnap.data()?.count || 0;
+    } catch (e) {
+      console.warn("Could not record visitor stats", e);
+      return 0;
     }
   }
 
   /**
-   * Calculate severity based on water level and category
-   */
-  private calculateSeverity(
-    waterLevel: string,
-    category: string,
-  ): "low" | "moderate" | "high" {
-    const highWaterLevels = ["waist", "neck", "head"];
-    const criticalCategories = ["overflow", "blockage"];
-
-    if (
-      highWaterLevels.includes(waterLevel) ||
-      criticalCategories.includes(category)
-    ) {
-      return "high";
-    }
-
-    const mediumWaterLevels = ["knee"];
-    if (mediumWaterLevels.includes(waterLevel)) {
-      return "moderate";
-    }
-
-    return "low";
-  }
-
-  /**
-   * Unsubscribe from a listener
-   */
-  unsubscribe(listenerKey: string): void {
-    const unsubscribe = this.listeners.get(listenerKey);
-    if (unsubscribe) {
-      unsubscribe();
-      this.listeners.delete(listenerKey);
-    }
-  }
-
-  /**
-   * Unsubscribe from all listeners
-   */
-  unsubscribeAll(): void {
-    this.listeners.forEach((unsubscribe) => unsubscribe());
-    this.listeners.clear();
-  }
-
-  /**
-   * Get initialization status
-   */
-  isInitialized(): boolean {
-    return this.initialized;
-  }
-
-  /**
-   * Return aggregate visitor count from Firestore analytics document.
+   * Get visitor count
    */
   async getVisitorCount(): Promise<number> {
     try {
       await this.ensureInitialized();
+      if (!this.db) return 0;
 
-      const metricsRef = doc(this.db, "analytics", "visitors");
-      const snapshot = await getDoc(metricsRef);
-      if (!snapshot.exists()) {
-        return 0;
-      }
-
-      const data = snapshot.data() as DocumentData;
-      return Number(data.totalCount || 0);
-    } catch (error) {
-      console.error("Error fetching visitor count:", error);
-      throw error;
+      const visitorRef = doc(this.db, "analytics", "visitor_stats");
+      const docSnap = await getDoc(visitorRef);
+      return docSnap.exists() ? docSnap.data().count : 0;
+    } catch (e) {
+      return 0;
     }
   }
 
-  /**
-   * Record one unique visitor session and update aggregate count atomically.
-   */
-  async recordVisitorVisit(
-    sessionId: string,
-    metadata: Record<string, string> = {},
-  ): Promise<number> {
-    try {
-      await this.ensureInitialized();
-
-      const metricsRef = doc(this.db, "analytics", "visitors");
-      const sessionRef = doc(this.db, "visitor_sessions", sessionId);
-
-      const nextCount = await runTransaction(this.db, async (transaction) => {
-        const [metricsSnap, sessionSnap] = await Promise.all([
-          transaction.get(metricsRef),
-          transaction.get(sessionRef),
-        ]);
-
-        const currentCount = metricsSnap.exists()
-          ? Number((metricsSnap.data() as DocumentData).totalCount || 0)
-          : 0;
-
-        if (sessionSnap.exists()) {
-          return currentCount;
-        }
-
-        const updatedCount = currentCount + 1;
-
-        transaction.set(
-          sessionRef,
-          {
-            sessionId,
-            createdAt: Timestamp.now(),
-            ...metadata,
-          },
-          { merge: true },
-        );
-
-        transaction.set(
-          metricsRef,
-          {
-            totalCount: updatedCount,
-            updatedAt: Timestamp.now(),
-          },
-          { merge: true },
-        );
-
-        return updatedCount;
-      });
-
-      return nextCount;
-    } catch (error) {
-      console.error("Error recording visitor visit:", error);
-      throw error;
-    }
+  isInitialized(): boolean {
+    return this.db !== null && this.storage !== null;
   }
 }
 
-// Export singleton instance
-export const firebaseService = new JalRakshakFirebase();
-
-/**
- * Initialize Firebase on app load
- */
-export async function initializeFirebase(): Promise<boolean> {
-  return firebaseService.initialize();
-}
+export const firebaseService = JalRakshakFirebase.getInstance();
+export const initializeFirebase = () => firebaseService.initialize();
