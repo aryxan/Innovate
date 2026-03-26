@@ -56,7 +56,7 @@ import {
   Home,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { AreaChart, Area } from "recharts";
+import { AreaChart, Area, YAxis } from "recharts";
 import {
   DashboardSkeleton,
   TableSkeleton,
@@ -157,13 +157,21 @@ const SparklingTrend = ({ data }: { data: any[] }) => {
       style={{ height: "56px" }}
     >
       <AreaChart width={64} height={56} data={data}>
+        <defs>
+          <linearGradient id="gradientTrend" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={isRising ? "#f97316" : "#22c55e"} stopOpacity={0.3}/>
+            <stop offset="95%" stopColor={isRising ? "#f97316" : "#22c55e"} stopOpacity={0}/>
+          </linearGradient>
+        </defs>
+        <YAxis hide domain={["dataMin - 0.2", "dataMax + 0.2"]} />
         <Area
           type="monotone"
           dataKey="level"
           stroke={isRising ? "#f97316" : "#22c55e"}
-          fill={isRising ? "rgba(249, 115, 22, 0.1)" : "rgba(34, 197, 94, 0.1)"}
+          fill="url(#gradientTrend)"
           strokeWidth={2}
           dot={false}
+          isAnimationActive={false}
         />
       </AreaChart>
     </div>
