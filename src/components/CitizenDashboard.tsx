@@ -688,26 +688,28 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     status: string;
     lat: number;
     lng: number;
+    rainfall?: number;
   }
 
   const mappedStations = useMemo<MappedStation[]>(() => {
     const fs = floodStations || [];
     return fs.map((st: any) => ({
-      name: st.station || st.name || "Unknown",
+      name: st.stationName || st.station || st.name || "Unknown",
       basin: st.river || st.basin || "",
-      level: st.last_level || st.currentLevel || 0,
-      warning: st.warning_level || st.warningLevel || 0,
-      danger: st.danger_level || st.dangerLevel || 0,
+      level: Number(st.level || st.last_level || st.currentLevel || 0),
+      warning: Number(st.warningLevel || st.warning_level || 0),
+      danger: Number(st.dangerLevel || st.danger_level || 0),
       trend: st.trend || "Steady",
-      status:
-        (st.last_level || st.currentLevel) >= (st.danger_level || st.dangerLevel)
+      status: st.status || (
+        Number(st.level || st.last_level || st.currentLevel) >= Number(st.dangerLevel || st.danger_level)
           ? "CRITICAL"
-          : (st.last_level || st.currentLevel) >=
-              (st.warning_level || st.warningLevel)
+          : Number(st.level || st.last_level || st.currentLevel) >= Number(st.warningLevel || st.warning_level)
             ? "WARNING"
-            : "NORMAL",
-      lat: st.lat,
-      lng: st.lon,
+            : "NORMAL"
+      ),
+      lat: st.location?.lat || st.lat,
+      lng: st.location?.lon || st.lng,
+      rainfall: Number(st.rainfall || 0),
     }));
   }, [floodStations]);
 
@@ -1130,43 +1132,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         throw new Error("Invalid flood payload");
       }
 
-      const alerts = payload.data;
       setHasLiveFloodData(true);
-      setFloodStations((prev) =>
-        prev.map((station) => {
-          const alert = alerts.find(
-            (a: any) =>
-              a.stationCode === station.id ||
-              (a.stationName &&
-                a.stationName
-                  .toLowerCase()
-                  .includes(station.name.toLowerCase())),
-          );
-
-          if (alert) {
-            const liveLevel = alert.currentLevel || station.currentLevel;
-            let liveCat: FloodCategory = "normal";
-            const status = (alert.status || "NORMAL").toUpperCase();
-            if (status.includes("EXTREME")) liveCat = "extreme";
-            else if (status.includes("DANGER")) liveCat = "severe";
-            else if (status.includes("WARNING")) liveCat = "above_normal";
-
-            return {
-              ...station,
-              currentLevel: liveLevel,
-              category: liveCat,
-              trend: alert.trend || "Steady",
-              lastUpdated: new Date().toISOString(),
-            };
-          }
-
-          return {
-            ...station,
-            category: "normal",
-            lastUpdated: new Date().toISOString(),
-          };
-        }),
-      );
+      setFloodStations(payload.data);
       setFloodLastRefresh(new Date());
       if (manual) {
         showToast("Retry successful", "success");
@@ -3353,13 +3320,16 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                   {t.danger}
                                 </th>
                                 <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-widest text-ink/50">
-                                  Status
+                                  STATUS
                                 </th>
                                 <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-widest text-ink/50">
-                                  Chart Trend
+                                  RAIN (mm)
                                 </th>
                                 <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-widest text-ink/50">
-                                  {t.trend}
+                                  TREND
+                                </th>
+                                <th className="py-4 px-4 text-[11px] font-bold uppercase tracking-widest text-ink/50">
+                                  CHART
                                 </th>
                               </tr>
                             </thead>
@@ -3382,14 +3352,17 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                     <td className="py-4 px-4">
                                       <div className="h-3 w-12 bg-slate-200 rounded" />
                                     </td>
+                                    <td className="py-4 px-4 text-center">
+                                      <div className="h-3 w-8 bg-slate-200 rounded mx-auto" />
+                                    </td>
+                                    <td className="py-4 px-4">
+                                      <div className="h-3 w-12 bg-slate-200 rounded" />
+                                    </td>
+                                    <td className="py-4 px-4">
+                                      <div className="h-8 w-16 bg-slate-200 rounded" />
+                                    </td>
                                     <td className="py-4 px-4">
                                       <div className="h-6 w-20 bg-slate-200 rounded-full" />
-                                    </td>
-                                    <td className="py-4 px-4">
-                                      <div className="h-6 w-16 bg-slate-200 rounded" />
-                                    </td>
-                                    <td className="py-4 px-4">
-                                      <div className="h-3 w-16 bg-slate-200 rounded" />
                                     </td>
                                   </tr>
                                 ))}
@@ -3468,6 +3441,20 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                         </span>
                                       </td>
                                       <td className="py-4 px-4">
+                                        <div className="flex items-center gap-1.5 font-mono text-sm font-bold text-ink/70">
+                                          <CloudRain size={14} className={station.rainfall && station.rainfall > 5 ? "text-ashoka-blue animate-pulse" : "text-ink/20"} />
+                                          {(station.rainfall || 0).toFixed(1)}
+                                        </div>
+                                      </td>
+                                      <td className="py-4 px-4">
+                                        <div
+                                          className={`text-[11px] font-bold flex items-center gap-1.5 ${station.trend === "Rising" ? "text-saffron" : station.trend === "Falling" ? "text-india-green" : "text-ink/40"}`}
+                                        >
+                                          <div className={`w-1.5 h-1.5 rounded-full ${station.trend === "Rising" ? "animate-pulse bg-saffron" : station.trend === "Falling" ? "bg-india-green" : "bg-ink/20"}`} />
+                                          {station.trend}
+                                        </div>
+                                      </td>
+                                      <td className="py-4 px-4">
                                         <SparklingTrend
                                           data={
                                             trendSeriesByStation[
@@ -3475,17 +3462,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                             ] || []
                                           }
                                         />
-                                      </td>
-                                      <td className="py-4 px-4">
-                                        <div
-                                          className={`text-[11px] font-bold flex items-center gap-1.5 ${station.trend === "Rising" ? "text-saffron" : station.trend === "Falling" ? "text-india-green" : "text-ink/40"}`}
-                                        >
-                                          <div className="w-1.5 h-1.5 rounded-full animate-pulse bg-saffron" />
-                                          {station.trend}
-                                          <span className="ml-2 text-ink/20 group-hover:text-ashoka-blue transition-colors text-lg leading-none">
-                                            ↗
-                                          </span>
-                                        </div>
                                       </td>
                                     </tr>
                                   );
