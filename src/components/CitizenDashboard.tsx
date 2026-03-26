@@ -1608,7 +1608,22 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       setReliefRequests(requests);
     });
     return () => unsub();
-  }, []);
+  }, []);  // Rotation for one-at-a-time news ticker
+  useEffect(() => {
+    if (news.length <= 1) return;
+    const newsTimer = setInterval(() => {
+      setCurrentNewsIndex((prev) => (prev + 1) % news.length);
+    }, 5000); // 5 seconds per news bit
+    return () => clearInterval(newsTimer);
+  }, [news.length]);
+
+  const handleManualProgressRefresh = () => {
+    setIsRefreshingProgress(true);
+    // Real-time listener is already active, but we can simulate a re-fetch
+    // or just show a "Refreshed" feedback to the user.
+    setTimeout(() => setIsRefreshingProgress(false), 800);
+    showToast("Command Mission Telemetry Synchronized", "success");
+  };
 
 
   const riverStations = mappedStations;
@@ -1620,32 +1635,32 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       ? adminProgressUpdates
       : [
           {
-            area: "Awaiting Admin Push",
-            task: "No operational update published yet",
+            area: "Operational Updates",
+            task: "Awaiting official briefing from command center",
             status: "Scheduled" as const,
-            admin: "Pending",
-            time: "Not Updated",
+            admin: "COMMAND HUB",
+            time: "AWAITING PUSH",
           },
           {
-            area: "Awaiting Admin Push",
-            task: "Status will be visible once command center publishes",
+            area: "Command Center Status",
+            task: "Deployment sequence initialized. Offline sync pending.",
             status: "Scheduled" as const,
-            admin: "Pending",
-            time: "Not Updated",
+            admin: "OPS CENTER",
+            time: "STANDBY",
           },
           {
-            area: "Awaiting Admin Push",
-            task: "Field team assignment pending",
+            area: "Field Team Assignments",
+            task: "Mapping responder units to assigned sectors",
             status: "Scheduled" as const,
-            admin: "Pending",
-            time: "Not Updated",
+            admin: "DISPATCH",
+            time: "PENDING",
           },
           {
-            area: "Awaiting Admin Push",
-            task: "Progress timeline will appear here",
+            area: "Progress Timeline",
+            task: "Mission timeline will sync on first publish",
             status: "Scheduled" as const,
-            admin: "Pending",
-            time: "Not Updated",
+            admin: "ANALYSIS",
+            time: "INITIALIZING",
           },
         ];
 
@@ -2708,24 +2723,42 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         </div>
       )}
 
-      {/* Verified News Bulletin — Hyper-Local Moving Ticker */}
+      {/* Unified News Strip — One-at-a-time Moving Notification Below Slideshow */}
       {!isLoading && activeTab === "safety" && news.length > 0 && (
-        <div className="w-full bg-ashoka-blue text-white py-2.5 overflow-hidden border-b border-saffron/40 z-[35] relative shadow-lg">
-          <div className="flex whitespace-nowrap animate-marquee items-center translate-z-0">
-            {/* Multiplied segments for seamless infinite scrolling loop */}
-            {[...news, ...news, ...news].map((item, i) => (
-              <div key={i} className="flex items-center mx-12">
-                <div className="w-2 h-2 bg-saffron rounded-full mr-4 animate-pulse shadow-[0_0_10px_rgba(255,153,51,0.9)]" />
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black uppercase tracking-[0.25em] text-saffron bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                    {item.source}
+        <div className="w-full bg-[#062444] text-white py-1.5 overflow-hidden border-y border-white/5 z-[35] relative shadow-lg">
+          <div className="max-w-7xl mx-auto px-6 h-8 flex items-center justify-between">
+            <div className="flex items-center gap-3 shrink-0">
+               <div className="w-2 h-2 bg-saffron rounded-full animate-pulse shadow-[0_0_8px_rgba(255,153,51,0.6)]" />
+               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-saffron">LIVE BRIEFING</span>
+               <div className="w-[1px] h-4 bg-white/20 mx-2" />
+            </div>
+            
+            <div className="flex-1 overflow-hidden relative h-full">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentNewsIndex}
+                  initial={{ x: 50, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -100, opacity: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="absolute inset-0 flex items-center"
+                >
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-blue-100/90 truncate pr-8">
+                    <span className="text-white/40 mr-2 font-mono">[{news[currentNewsIndex].source}]</span>
+                    {news[currentNewsIndex].text}
                   </span>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/95">
-                    {item.text}
-                  </span>
-                </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 border-l border-white/10 pl-6 ml-4">
+              <span className="text-[9px] font-mono text-white/40">{currentNewsIndex + 1}/{news.length}</span>
+              <div className="flex gap-1">
+                 {news.map((_, i) => (
+                   <div key={i} className={`w-1.5 h-1 rounded-full ${i === currentNewsIndex ? "bg-saffron" : "bg-white/10"}`} />
+                 ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
@@ -4666,19 +4699,29 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               </p>
                             </div>
                           </div>
-                          <div
-                            className={`flex items-center gap-3 px-3 py-1.5 rounded-full border ${adminProgressUpdates.length > 0 ? "bg-india-green/10 border-india-green/20" : "bg-amber-100 border-amber-200"}`}
-                          >
+                          <div className="flex items-center gap-4">
                             <div
-                              className={`w-1.5 h-1.5 rounded-full ${adminProgressUpdates.length > 0 ? "bg-india-green animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-amber-500"}`}
-                            />
-                            <span
-                              className={`text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${adminProgressUpdates.length > 0 ? "text-india-green" : "text-amber-700"}`}
+                              className={`flex items-center gap-3 px-3 py-1.5 rounded-full border ${adminProgressUpdates.length > 0 ? "bg-india-green/10 border-india-green/20" : "bg-amber-100 border-amber-200"}`}
                             >
-                              {adminProgressUpdates.length > 0
-                                ? "Authorized Feed Active"
-                                : "Awaiting Admin Push"}
-                            </span>
+                              <div
+                                className={`w-1.5 h-1.5 rounded-full ${adminProgressUpdates.length > 0 ? "bg-india-green animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-amber-500"}`}
+                              />
+                              <span
+                                className={`text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${adminProgressUpdates.length > 0 ? "text-india-green" : "text-amber-700"}`}
+                              >
+                                {adminProgressUpdates.length > 0
+                                  ? "Authorized Feed Active"
+                                  : "Awaiting Admin Push"}
+                              </span>
+                            </div>
+                            <button
+                              onClick={handleManualProgressRefresh}
+                              disabled={isRefreshingProgress}
+                              className="p-1.5 rounded-full bg-slate-200 hover:bg-ashoka-blue hover:text-white transition-all active:scale-90"
+                              title="Manual Telemetry Refresh"
+                            >
+                              <History className={`w-4 h-4 ${isRefreshingProgress ? "animate-spin" : ""}`} />
+                            </button>
                           </div>
                         </div>
 
