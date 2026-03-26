@@ -1665,6 +1665,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           type: "success",
         });
 
+        console.log("Transmission initiated with payload:", formData);
         const result = await submitReportToFirebase(
           {
             name: formData.address.split(",")[0]?.trim() || "Citizen Reporter",
@@ -1682,8 +1683,11 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           }
         );
 
+        console.log("Transmission result received:", result);
+
         if (result.success && result.reportId) {
           const reportReference = result.reportId;
+          console.log("Generated Mission Reference:", reportReference);
           setIsReporting(false);
           setReportSuccess(true);
           setGeneratedComplaintId(reportReference);
@@ -5514,64 +5518,54 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               );
                               return;
                             }
-                            setIsSubmittingMissing(true);
-                            const ref = generateInternalRef("MP");
-                            const requestDetails = {
-                              id: ref,
-                              type: "Missing Person",
-                              status: "Verification Stage",
-                              createdAt: new Date().toISOString(),
-                              caption:
-                                "Missing person alert captured and queued for immediate response.",
-                              payload: {
-                                name: missingPersonData.name,
-                                age: missingPersonData.age,
-                                gender: missingPersonData.gender,
-                                lastSeenLocation:
-                                  missingPersonData.lastSeenLocation,
-                                physicalFeatures:
-                                  missingPersonData.physicalFeatures,
-                                contactName: missingPersonData.contactName,
-                                contactPhone: missingPersonData.contactPhone,
-                              },
+                            const handleSubmit = async () => {
+                              setIsSubmittingMissing(true);
+                              try {
+                                const ref = generateInternalRef("MP");
+                                const payload = {
+                                  referenceId: ref,
+                                  type: "missing_person",
+                                  name: missingPersonData.name,
+                                  age: missingPersonData.age,
+                                  gender: missingPersonData.gender,
+                                  lastSeenLocation: missingPersonData.lastSeenLocation,
+                                  physicalFeatures: missingPersonData.physicalFeatures,
+                                  contactName: missingPersonData.contactName,
+                                  contactPhone: missingPersonData.contactPhone,
+                                  category: "humanitarian"
+                                };
+
+                                await firebaseService.submitReliefRequest(payload);
+
+                                if (onAddReport) {
+                                  onAddReport({
+                                    id: ref,
+                                    location: missingPersonData.lastSeenLocation,
+                                    type: "Missing Person",
+                                    status: "Verification Stage",
+                                    time: "Just Now",
+                                    severity: "Critical",
+                                    description: `Missing: ${missingPersonData.name}, Age: ${missingPersonData.age}.`,
+                                  });
+                                }
+
+                                setSuccessModal({ show: true, type: "missing", ref });
+                                setMissingPersonData({
+                                  name: "", age: "", gender: "", lastSeenLocation: "",
+                                  lastSeenTime: "", description: "", physicalFeatures: "",
+                                  contactName: "", contactRelation: "", contactPhone: "",
+                                  isContactVerified: false,
+                                });
+                                setMissingPersonPhoto(null);
+                                setIdentityProof(null);
+                              } catch (err) {
+                                console.error("Mission failed:", err);
+                                alert("Failed to transmit alert. Please check your data-link.");
+                              } finally {
+                                setIsSubmittingMissing(false);
+                              }
                             };
-                            setReliefRequests((prev) => [
-                              requestDetails,
-                              ...prev,
-                            ]);
-                            if (onAddReport)
-                              onAddReport({
-                                id: ref,
-                                location: missingPersonData.lastSeenLocation,
-                                type: "Missing Person",
-                                status: "Verification Stage",
-                                time: "Just Now",
-                                severity: "Critical",
-                                description: `Missing: ${missingPersonData.name}, Age: ${missingPersonData.age}. Features: ${missingPersonData.physicalFeatures}. Reporter: ${missingPersonData.contactName} (${missingPersonData.contactPhone})`,
-                              });
-                            setTimeout(() => {
-                              setIsSubmittingMissing(false);
-                              setSuccessModal({
-                                show: true,
-                                type: "missing",
-                                ref,
-                              });
-                              setMissingPersonData({
-                                name: "",
-                                age: "",
-                                gender: "",
-                                lastSeenLocation: "",
-                                lastSeenTime: "",
-                                description: "",
-                                physicalFeatures: "",
-                                contactName: "",
-                                contactRelation: "",
-                                contactPhone: "",
-                                isContactVerified: false,
-                              });
-                              setMissingPersonPhoto(null);
-                              setIdentityProof(null);
-                            }, 1500);
+                            handleSubmit();
                           }}
                         >
                           <div className="space-y-3">
@@ -6045,56 +6039,50 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             className="space-y-4 flex-1"
                             onSubmit={(e) => {
                               e.preventDefault();
-                              const ref = generateInternalRef("CR");
-                              const requestDetails = {
-                                id: ref,
-                                type: "Counseling Request",
-                                status: "Pending Assignment",
-                                createdAt: new Date().toISOString(),
-                                caption:
-                                  "Counseling request logged and escalated to support dispatch.",
-                                payload: {
-                                  name: counselorData.name,
-                                  phone: counselorData.phone,
-                                  reason: counselorData.reason,
-                                  urgency: counselorData.urgency,
-                                  language: counselorData.language,
-                                  preferredMode: counselorData.preferredMode,
-                                },
+                              const handleSubmit = async () => {
+                                setIsSubmittingCounselor(true);
+                                try {
+                                  const ref = generateInternalRef("CR");
+                                  const payload = {
+                                    referenceId: ref,
+                                    type: "counseling",
+                                    name: counselorData.name,
+                                    phone: counselorData.phone,
+                                    reason: counselorData.reason,
+                                    urgency: counselorData.urgency,
+                                    language: counselorData.language,
+                                    preferredMode: counselorData.preferredMode,
+                                    category: "humanitarian"
+                                  };
+
+                                  await firebaseService.submitReliefRequest(payload);
+
+                                  if (onAddReport) {
+                                    onAddReport({
+                                      id: ref,
+                                      location: "Priority: " + counselorData.urgency.toUpperCase(),
+                                      type: "Counseling Request",
+                                      status: "Pending Assignment",
+                                      time: "Just Now",
+                                      severity: counselorData.urgency === "sos" ? "Critical" : "High",
+                                      description: `Counseling for ${counselorData.name}. Need: ${counselorData.reason}.`,
+                                    });
+                                  }
+
+                                  setSuccessModal({ show: true, type: "counselor", ref });
+                                  setShowCounselorForm(false);
+                                  setCounselorData({
+                                    name: "", phone: "", reason: "trauma",
+                                    urgency: "high", language: "english", preferredMode: "voice",
+                                  });
+                                } catch (err) {
+                                  console.error("Counseling failed:", err);
+                                  alert("Failed to lodge request. Try again.");
+                                } finally {
+                                  setIsSubmittingCounselor(false);
+                                }
                               };
-                              setReliefRequests((prev) => [
-                                requestDetails,
-                                ...prev,
-                              ]);
-                              if (onAddReport)
-                                onAddReport({
-                                  id: ref,
-                                  location:
-                                    "Priority: " +
-                                    counselorData.urgency.toUpperCase(),
-                                  type: "Counseling Request",
-                                  status: "Pending Assignment",
-                                  time: "Just Now",
-                                  severity:
-                                    counselorData.urgency === "sos"
-                                      ? "Critical"
-                                      : "High",
-                                  description: `Request for ${counselorData.name}. Need: ${counselorData.reason}. Language: ${counselorData.language}. Mode: ${counselorData.preferredMode}`,
-                                });
-                              setSuccessModal({
-                                show: true,
-                                type: "counselor",
-                                ref,
-                              });
-                              setShowCounselorForm(false);
-                              setCounselorData({
-                                name: "",
-                                phone: "",
-                                reason: "trauma",
-                                urgency: "high",
-                                language: "english",
-                                preferredMode: "voice",
-                              });
+                              handleSubmit();
                             }}
                           >
                             <div className="space-y-3">
