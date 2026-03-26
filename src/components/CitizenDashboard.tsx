@@ -131,9 +131,9 @@ const getDistance = (
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -237,7 +237,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     phone: "",
     expertise: "general",
     experience: "none",
-    availability: "full",
+    availability: "all_day",
     tools: "",
     district: "",
   });
@@ -732,7 +732,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         if (!sessionId) {
           sessionId =
             typeof crypto !== "undefined" &&
-            typeof crypto.randomUUID === "function"
+              typeof crypto.randomUUID === "function"
               ? crypto.randomUUID()
               : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
           sessionStorage.setItem(sessionIdKey, sessionId);
@@ -759,10 +759,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         const cloudCount = hasCountedThisSession
           ? await firebaseService.getVisitorCount()
           : await firebaseService.recordVisitorVisit(sessionId, {
-              source: "citizen_dashboard",
-              locale: navigator.language || "en-IN",
-              platform: navigator.platform || "unknown",
-            });
+            source: "citizen_dashboard",
+            locale: navigator.language || "en-IN",
+            platform: navigator.platform || "unknown",
+          });
 
         if (isMounted && cloudCount > 0) {
           setVisitorCount(cloudCount);
@@ -1411,7 +1411,16 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   );
   const [identityProof, setIdentityProof] = useState<File | null>(null);
   const [isSubmittingMissing, setIsSubmittingMissing] = useState(false);
+  const [isSubmittingVolunteer, setIsSubmittingVolunteer] = useState(false);
+  const [isSubmittingCounseling, setIsSubmittingCounseling] = useState(false);
   const [missingReportSuccess, setMissingReportSuccess] = useState(false);
+
+  useEffect(() => {
+    const unsub = firebaseService.subscribeToReliefRequests((requests) => {
+      setReliefRequests(requests);
+    });
+    return () => unsub();
+  }, []);
 
   // Verified Area-Based News Bulletin Intel
   useEffect(() => {
@@ -1518,35 +1527,35 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     adminProgressUpdates.length > 0
       ? adminProgressUpdates
       : [
-          {
-            area: "Awaiting Admin Push",
-            task: "No operational update published yet",
-            status: "Scheduled" as const,
-            admin: "Pending",
-            time: "Not Updated",
-          },
-          {
-            area: "Awaiting Admin Push",
-            task: "Status will be visible once command center publishes",
-            status: "Scheduled" as const,
-            admin: "Pending",
-            time: "Not Updated",
-          },
-          {
-            area: "Awaiting Admin Push",
-            task: "Field team assignment pending",
-            status: "Scheduled" as const,
-            admin: "Pending",
-            time: "Not Updated",
-          },
-          {
-            area: "Awaiting Admin Push",
-            task: "Progress timeline will appear here",
-            status: "Scheduled" as const,
-            admin: "Pending",
-            time: "Not Updated",
-          },
-        ];
+        {
+          area: "Awaiting Admin Push",
+          task: "No operational update published yet",
+          status: "Scheduled" as const,
+          admin: "Pending",
+          time: "Not Updated",
+        },
+        {
+          area: "Awaiting Admin Push",
+          task: "Status will be visible once command center publishes",
+          status: "Scheduled" as const,
+          admin: "Pending",
+          time: "Not Updated",
+        },
+        {
+          area: "Awaiting Admin Push",
+          task: "Field team assignment pending",
+          status: "Scheduled" as const,
+          admin: "Pending",
+          time: "Not Updated",
+        },
+        {
+          area: "Awaiting Admin Push",
+          task: "Progress timeline will appear here",
+          status: "Scheduled" as const,
+          admin: "Pending",
+          time: "Not Updated",
+        },
+      ];
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -2031,8 +2040,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             )
               parts.push(
                 data.address.suburb ||
-                  data.address.neighbourhood ||
-                  data.address.residential,
+                data.address.neighbourhood ||
+                data.address.residential,
               );
             if (
               data.address?.city ||
@@ -2047,7 +2056,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               parts.length > 0
                 ? parts.join(", ")
                 : data.display_name?.split(",").slice(0, 2).join(",") ||
-                  "Your Precise Area";
+                "Your Precise Area";
             setSafetyLocation({ lat, lng, name: locationName });
           } catch (e) {
             setSafetyLocation({ lat, lng, name: "Your Area" });
@@ -2161,9 +2170,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
   return (
     <div
-      className={`min-h-screen ${isLoading && !showLanguageSelector ? "bg-white" : "bg-cream"} text-ink font-sans selection:bg-saffron/20 relative overflow-x-hidden ${
-        isVisualModeEnabled ? "visual-mode-enabled" : ""
-      } ${isSignLanguageEnabled ? "sign-language-mode" : ""}`}
+      className={`min-h-screen ${isLoading && !showLanguageSelector ? "bg-white" : "bg-cream"} text-ink font-sans selection:bg-saffron/20 relative overflow-x-hidden ${isVisualModeEnabled ? "visual-mode-enabled" : ""
+        } ${isSignLanguageEnabled ? "sign-language-mode" : ""}`}
     >
       <AnimatePresence>
         {showLanguageSelector && (
@@ -2219,20 +2227,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     className="flex flex-col items-center gap-3 group"
                   >
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all ${
-                        isVoiceAssistantEnabled
+                      className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all ${isVoiceAssistantEnabled
                           ? "bg-india-green text-white border-india-green"
                           : "bg-india-green/10 border-india-green/20 group-hover:bg-india-green group-hover:text-white"
-                      }`}
+                        }`}
                     >
                       <Volume2 className="w-5 h-5" />
                     </div>
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-widest ${
-                        isVoiceAssistantEnabled
+                      className={`text-[10px] font-bold uppercase tracking-widest ${isVoiceAssistantEnabled
                           ? "text-india-green"
                           : "text-ink/40 group-hover:text-india-green"
-                      }`}
+                        }`}
                     >
                       {ui("audioGuide", "Audio Guide")}
                     </span>
@@ -2242,20 +2248,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     className="flex flex-col items-center gap-3 group"
                   >
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all ${
-                        isVisualModeEnabled
+                      className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all ${isVisualModeEnabled
                           ? "bg-ashoka-blue text-white border-ashoka-blue"
                           : "bg-ashoka-blue/10 border-ashoka-blue/20 group-hover:bg-ashoka-blue group-hover:text-white"
-                      }`}
+                        }`}
                     >
                       <Eye className="w-5 h-5" />
                     </div>
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-widest ${
-                        isVisualModeEnabled
+                      className={`text-[10px] font-bold uppercase tracking-widest ${isVisualModeEnabled
                           ? "text-ashoka-blue"
                           : "text-ink/40 group-hover:text-ashoka-blue"
-                      }`}
+                        }`}
                     >
                       {ui("visualMode", "Visual Mode")}
                     </span>
@@ -2265,20 +2269,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     className="flex flex-col items-center gap-3 group"
                   >
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all ${
-                        isSignLanguageEnabled
+                      className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all ${isSignLanguageEnabled
                           ? "bg-saffron text-white border-saffron"
                           : "bg-saffron/10 border-saffron/20 group-hover:bg-saffron group-hover:text-white"
-                      }`}
+                        }`}
                     >
                       <Hand className="w-5 h-5" />
                     </div>
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-widest ${
-                        isSignLanguageEnabled
+                      className={`text-[10px] font-bold uppercase tracking-widest ${isSignLanguageEnabled
                           ? "text-saffron"
                           : "text-ink/40 group-hover:text-saffron"
-                      }`}
+                        }`}
                     >
                       {ui("signLanguage", "Sign Language")}
                     </span>
@@ -2331,11 +2333,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   <button
                     key={tab}
                     onClick={() => handleTabChange(tab)}
-                    className={`px-4 lg:px-6 py-2 rounded-lg text-[11px] font-bold transition-all duration-200 uppercase tracking-widest ${
-                      activeTab === tab
+                    className={`px-4 lg:px-6 py-2 rounded-lg text-[11px] font-bold transition-all duration-200 uppercase tracking-widest ${activeTab === tab
                         ? "bg-white text-ashoka-blue shadow-md"
                         : "text-white/60 hover:text-white hover:bg-white/10"
-                    }`}
+                      }`}
                   >
                     {tab === "safety"
                       ? t.safety
@@ -2376,11 +2377,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               onClick={() =>
                 setIsVoiceAssistantEnabled(!isVoiceAssistantEnabled)
               }
-              className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl border transition-all relative ${
-                isVoiceAssistantEnabled
+              className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl border transition-all relative ${isVoiceAssistantEnabled
                   ? "bg-india-green text-white border-india-green shadow-md"
                   : "bg-white/10 text-white/60 border-white/20 hover:border-india-green/30"
-              }`}
+                }`}
             >
               <Volume2
                 className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isListening ? "animate-pulse" : ""}`}
@@ -2401,11 +2401,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             <button
               key={tab}
               onClick={() => handleTabChange(tab)}
-              className={`flex-1 py-4 text-[8px] font-bold uppercase tracking-tighter transition-colors ${
-                activeTab === tab
+              className={`flex-1 py-4 text-[8px] font-bold uppercase tracking-tighter transition-colors ${activeTab === tab
                   ? "text-white bg-white/10 border-b-2 border-white"
                   : "text-white/50"
-              }`}
+                }`}
             >
               {tab === "safety"
                 ? t.safety
@@ -3232,7 +3231,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                         <SparklingTrend
                                           data={
                                             trendSeriesByStation[
-                                              station.name
+                                            station.name
                                             ] || []
                                           }
                                         />
@@ -3284,22 +3283,21 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           <div className="space-y-2">
                             <button
                               onClick={requestNotificationPermission}
-                              className={`w-full py-2.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-                                notificationsEnabled
+                              className={`w-full py-2.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${notificationsEnabled
                                   ? "bg-india-green text-white border border-india-green"
                                   : "bg-white text-[#0B3A68] hover:bg-slate-100"
-                              }`}
+                                }`}
                             >
                               <Zap className="w-4 h-4" />
                               {notificationsEnabled
                                 ? ui(
-                                    "criticalAlertsEnabled",
-                                    "Critical Alerts Enabled",
-                                  )
+                                  "criticalAlertsEnabled",
+                                  "Critical Alerts Enabled",
+                                )
                                 : ui(
-                                    "enableBrowserAlerts",
-                                    "Enable Browser Alerts",
-                                  )}
+                                  "enableBrowserAlerts",
+                                  "Enable Browser Alerts",
+                                )}
                             </button>
                             <button className="w-full py-2.5 bg-white text-[#0B3A68] rounded-sm text-[10px] font-bold uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
                               <Smartphone className="w-4 h-4" />{" "}
@@ -3418,7 +3416,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                     )}
                                     <span className="inline-block text-[11px] font-black text-white px-2.5 py-1 bg-white/10 rounded-sm uppercase group-hover:bg-[#0B3A68] group-hover:text-white transition-colors border border-white/20 shadow-sm mt-1">
                                       {facility.distance &&
-                                      !isNaN(facility.distance)
+                                        !isNaN(facility.distance)
                                         ? `${facility.distance.toFixed(1)} km`
                                         : "Active Site"}
                                     </span>
@@ -3542,11 +3540,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         <button
                           key={mode.id}
                           onClick={() => setMapLayer(mode.id as any)}
-                          className={`flex items-center gap-2 px-4 py-2.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all ${
-                            mapLayer === mode.id
+                          className={`flex items-center gap-2 px-4 py-2.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all ${mapLayer === mode.id
                               ? "bg-saffron text-[#0B3A68] border border-saffron shadow-sm"
                               : "bg-transparent text-white hover:bg-white/10 border border-white/20"
-                          }`}
+                            }`}
                         >
                           {mode.icon} {mode.label}
                         </button>
@@ -3557,11 +3554,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     <div className="flex items-center gap-3 ml-auto">
                       <button
                         onClick={() => setShowFloodPanel((p) => !p)}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all border ${
-                          showFloodPanel
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all border ${showFloodPanel
                             ? "bg-india-green text-white border-india-green shadow-sm"
                             : "bg-transparent text-white/60 border-white/20 hover:border-india-green/50"
-                        }`}
+                          }`}
                       >
                         <Droplets className="w-3.5 h-3.5" /> CWC Flood Stations
                       </button>
@@ -3986,7 +3982,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                                     station.trend === "Rising"
                                                       ? "#f97316"
                                                       : station.trend ===
-                                                          "Falling"
+                                                        "Falling"
                                                         ? "#22c55e"
                                                         : "#888",
                                                 }}
@@ -4006,7 +4002,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                               >
                                                 {
                                                   STATION_TYPE_LABELS[
-                                                    station.stationType
+                                                  station.stationType
                                                   ]
                                                 }
                                               </td>
@@ -4260,17 +4256,16 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 key={cat}
                                 id={`flood-filter-cat-${cat}`}
                                 onClick={() => toggleCategory(cat)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all border ${
-                                  floodCategoryFilter.has(cat)
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all border ${floodCategoryFilter.has(cat)
                                     ? "text-white border-transparent"
                                     : "text-white/30 border-white/10 bg-white/5"
-                                }`}
+                                  }`}
                                 style={
                                   floodCategoryFilter.has(cat)
                                     ? {
-                                        backgroundColor: CATEGORY_COLORS[cat],
-                                        borderColor: CATEGORY_COLORS[cat],
-                                      }
+                                      backgroundColor: CATEGORY_COLORS[cat],
+                                      borderColor: CATEGORY_COLORS[cat],
+                                    }
                                     : {}
                                 }
                               >
@@ -4312,11 +4307,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 key={type}
                                 id={`flood-filter-type-${type}`}
                                 onClick={() => toggleType(type)}
-                                className={`px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all border ${
-                                  floodTypeFilter.has(type)
+                                className={`px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all border ${floodTypeFilter.has(type)
                                     ? "bg-white/15 text-white border-white/30"
                                     : "text-white/30 border-white/10 bg-white/5"
-                                }`}
+                                  }`}
                               >
                                 {STATION_TYPE_LABELS[type]}
                               </button>
@@ -4950,13 +4944,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 initial={{ opacity: 0, y: -6, scale: 0.98 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                                className={`rounded-xl border px-4 py-3 text-[11px] uppercase tracking-wide font-bold ${
-                                  otpStatus === "verified"
+                                className={`rounded-xl border px-4 py-3 text-[11px] uppercase tracking-wide font-bold ${otpStatus === "verified"
                                     ? "bg-emerald-50 border-emerald-300 text-emerald-800"
                                     : otpStatus === "error"
                                       ? "bg-red-50 border-red-300 text-red-700"
                                       : "bg-[#0B3A68]/5 border-[#0B3A68]/30 text-[#0B3A68]"
-                                }`}
+                                  }`}
                               >
                                 <div className="flex items-start gap-2">
                                   {otpStatus === "verified" ? (
@@ -5071,11 +5064,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                         issueType: type.id,
                                       })
                                     }
-                                    className={`p-4 rounded-sm border transition-all text-center flex flex-col items-center gap-3 ${
-                                      formData.issueType === type.id
+                                    className={`p-4 rounded-sm border transition-all text-center flex flex-col items-center gap-3 ${formData.issueType === type.id
                                         ? "border-ashoka-blue bg-ashoka-blue/5 shadow-sm"
                                         : "border-slate-200 bg-slate-50 hover:border-ashoka-blue/30"
-                                    }`}
+                                      }`}
                                   >
                                     <div
                                       className={`p-3 rounded-sm bg-white shadow-sm border border-slate-200 ${type.color}`}
@@ -5148,11 +5140,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                         waterLevel: level.id,
                                       })
                                     }
-                                    className={`p-4 rounded-sm border transition-all text-center flex flex-col items-center gap-3 ${
-                                      formData.waterLevel === level.id
+                                    className={`p-4 rounded-sm border transition-all text-center flex flex-col items-center gap-3 ${formData.waterLevel === level.id
                                         ? "border-ashoka-blue bg-ashoka-blue/5 shadow-sm"
                                         : "border-slate-200 bg-slate-50 hover:border-ashoka-blue/30"
-                                    }`}
+                                      }`}
                                   >
                                     <div
                                       className={`p-3 rounded-sm bg-white shadow-sm border border-slate-200 ${level.color}`}
@@ -5393,13 +5384,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 (step: any, idx: number) => (
                                   <div key={idx} className="relative pl-12">
                                     <div
-                                      className={`absolute left-0 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center z-10 ${
-                                        step.status === "done"
+                                      className={`absolute left-0 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center z-10 ${step.status === "done"
                                           ? "bg-india-green"
                                           : step.status === "active"
                                             ? "bg-ashoka-blue animate-pulse"
                                             : "bg-gray-200"
-                                      }`}
+                                        }`}
                                     >
                                       {step.status === "done" && (
                                         <CheckCircle2 className="w-4 h-4 text-white" />
@@ -5497,80 +5487,88 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           className="space-y-4 flex-1"
                           onSubmit={(e) => {
                             e.preventDefault();
-                            if (!missingPersonData.isContactVerified) {
-                              alert(
-                                selectedLanguage === "hi"
-                                  ? "कृपया पहले अपना संपर्क नंबर सत्यापित करें"
-                                  : "Please verify your contact number first",
-                              );
-                              return;
-                            }
-                            if (!missingPersonPhoto || !identityProof) {
-                              alert(
-                                selectedLanguage === "hi"
-                                  ? "तस्वीर और आईडी प्रमाण अनिवार्य हैं"
-                                  : "Photograph and ID proof are mandatory",
-                              );
-                              return;
-                            }
-                            setIsSubmittingMissing(true);
-                            const ref = generateInternalRef("MP");
-                            const requestDetails = {
-                              id: ref,
-                              type: "Missing Person",
-                              status: "Verification Stage",
-                              createdAt: new Date().toISOString(),
-                              caption:
-                                "Missing person alert captured and queued for immediate response.",
-                              payload: {
-                                name: missingPersonData.name,
-                                age: missingPersonData.age,
-                                gender: missingPersonData.gender,
-                                lastSeenLocation:
-                                  missingPersonData.lastSeenLocation,
-                                physicalFeatures:
-                                  missingPersonData.physicalFeatures,
-                                contactName: missingPersonData.contactName,
-                                contactPhone: missingPersonData.contactPhone,
-                              },
+                            const handleSubmit = async () => {
+                              if (!missingPersonData.isContactVerified) {
+                                alert(
+                                  selectedLanguage === "hi"
+                                    ? "कृपया पहले अपना संपर्क नंबर सत्यापित करें"
+                                    : "Please verify your contact number first",
+                                );
+                                return;
+                              }
+                              if (!missingPersonPhoto || !identityProof) {
+                                alert(
+                                  selectedLanguage === "hi"
+                                    ? "तस्वीर और आईडी प्रमाण अनिवार्य हैं"
+                                    : "Photograph and ID proof are mandatory",
+                                );
+                                return;
+                              }
+
+                              setIsSubmittingMissing(true);
+                              try {
+                                const refId = generateInternalRef("MP");
+
+                                // Upload Forensic Assets
+                                const assets = await firebaseService.uploadReliefAssets({
+                                  photo: missingPersonPhoto,
+                                  idProof: identityProof
+                                }, refId);
+
+                                const payload = {
+                                  referenceId: refId,
+                                  type: "Missing Person",
+                                  status: "Verification Stage",
+                                  name: missingPersonData.name,
+                                  age: missingPersonData.age,
+                                  gender: missingPersonData.gender,
+                                  lastSeenLocation: missingPersonData.lastSeenLocation,
+                                  physicalFeatures: missingPersonData.physicalFeatures,
+                                  contactName: missingPersonData.contactName,
+                                  contactPhone: missingPersonData.contactPhone,
+                                  photoUrl: assets.photo,
+                                  idProofUrl: assets.idProof,
+                                  category: "humanitarian"
+                                };
+
+                                await firebaseService.submitReliefRequest(payload);
+
+                                if (onAddReport) {
+                                  onAddReport({
+                                    id: refId,
+                                    location: missingPersonData.lastSeenLocation,
+                                    type: "Missing Person",
+                                    status: "Verification Stage",
+                                    time: "Just Now",
+                                    severity: "Critical",
+                                    description: `Missing: ${missingPersonData.name}, Age: ${missingPersonData.age}. Features: ${missingPersonData.physicalFeatures}.`,
+                                  });
+                                }
+
+                                setSuccessModal({
+                                  show: true,
+                                  type: "missing",
+                                  ref: refId,
+                                });
+
+                                // Reset fields
+                                setMissingPersonData({
+                                  name: "", age: "", gender: "", lastSeenLocation: "",
+                                  lastSeenTime: "", description: "", physicalFeatures: "",
+                                  contactName: "", contactRelation: "", contactPhone: "",
+                                  isContactVerified: false,
+                                });
+                                setMissingPersonPhoto(null);
+                                setIdentityProof(null);
+
+                              } catch (err) {
+                                console.error("Relief submission failed:", err);
+                                alert("Failed to transmit alert. Please try again.");
+                              } finally {
+                                setIsSubmittingMissing(false);
+                              }
                             };
-                            setReliefRequests((prev) => [
-                              requestDetails,
-                              ...prev,
-                            ]);
-                            if (onAddReport)
-                              onAddReport({
-                                id: ref,
-                                location: missingPersonData.lastSeenLocation,
-                                type: "Missing Person",
-                                status: "Verification Stage",
-                                time: "Just Now",
-                                severity: "Critical",
-                                description: `Missing: ${missingPersonData.name}, Age: ${missingPersonData.age}. Features: ${missingPersonData.physicalFeatures}. Reporter: ${missingPersonData.contactName} (${missingPersonData.contactPhone})`,
-                              });
-                            setTimeout(() => {
-                              setIsSubmittingMissing(false);
-                              setSuccessModal({
-                                show: true,
-                                type: "missing",
-                                ref,
-                              });
-                              setMissingPersonData({
-                                name: "",
-                                age: "",
-                                gender: "",
-                                lastSeenLocation: "",
-                                lastSeenTime: "",
-                                description: "",
-                                physicalFeatures: "",
-                                contactName: "",
-                                contactRelation: "",
-                                contactPhone: "",
-                                isContactVerified: false,
-                              });
-                              setMissingPersonPhoto(null);
-                              setIdentityProof(null);
-                            }, 1500);
+                            handleSubmit();
                           }}
                         >
                           <div className="space-y-3">
@@ -5711,19 +5709,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               />
                               <button
                                 type="button"
-                                onClick={() =>
-                                  missingPersonData.contactPhone.length ===
-                                    10 &&
-                                  setMissingPersonData({
-                                    ...missingPersonData,
-                                    isContactVerified: true,
-                                  })
-                                }
+                                onClick={() => missingPersonData.contactPhone.length === 10 && setMissingPersonData({ ...missingPersonData, isContactVerified: true })}
                                 className={`px-3 rounded-sm text-[9px] font-bold uppercase ${missingPersonData.isContactVerified ? "bg-india-green text-white" : "bg-[#0B3A68] text-white"}`}
                               >
-                                {missingPersonData.isContactVerified
-                                  ? "✓"
-                                  : "Verify"}
+                                {missingPersonData.isContactVerified ? "✓" : "Verify"}
                               </button>
                             </div>
                           </div>
@@ -5733,11 +5722,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             disabled={isSubmittingMissing}
                             className="w-full bg-red-600 text-white py-3 rounded-sm font-bold uppercase tracking-widest text-[10px] shadow-sm hover:bg-red-700 transition-all flex items-center justify-center gap-2 border border-red-700"
                           >
-                            {isSubmittingMissing ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              "Transmit Alert"
-                            )}
+                            {isSubmittingMissing ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : "Transmit Alert"}
                           </button>
                         </form>
                       </div>
@@ -5763,6 +5748,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         {!showVolunteerForm ? (
                           <div className="flex flex-col flex-1">
                             <div className="flex-1 flex flex-col justify-center mb-8">
+
                               <p className="text-[11px] text-black/60 leading-relaxed mb-6 text-center">
                                 Join citizens assisting in rescue ops, food
                                 logistics, and on-ground registry verification.
@@ -5774,9 +5760,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               </p>
                               <button
                                 onClick={() => setShowVolunteerForm(true)}
-                                className="w-full h-12 bg-[#0B3A68] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#082a4d] transition-all shadow-sm border border-[#0B3A68]"
+                                className="w-full h-12 bg-[#0B3A68] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#082a4d] transition-all shadow-sm border border-[#0B3A68] disabled:opacity-50"
+                                disabled={isSubmittingVolunteer}
                               >
-                                Apply for Enrollment
+                                {isSubmittingVolunteer ? "Processing Enrollment..." : "Apply for Enrollment"}
                               </button>
                             </div>
 
@@ -5818,55 +5805,52 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             className="space-y-4 flex-1"
                             onSubmit={(e) => {
                               e.preventDefault();
-                              const ref = generateInternalRef("VR");
-                              const requestDetails = {
-                                id: ref,
-                                type: "Volunteer Application",
-                                status: "Verification Stage",
-                                createdAt: new Date().toISOString(),
-                                caption:
-                                  "Volunteer profile received and routed to responder allocation team.",
-                                payload: {
-                                  name: volunteerData.name,
-                                  phone: volunteerData.phone,
-                                  expertise: volunteerData.expertise,
-                                  experience: volunteerData.experience,
-                                  availability: volunteerData.availability,
-                                  tools: volunteerData.tools,
-                                  district:
-                                    volunteerData.district || districtName,
-                                },
+                              const handleSubmit = async () => {
+                                setIsSubmittingVolunteer(true);
+                                try {
+                                  const refId = generateInternalRef("VR");
+                                  const payload = {
+                                    referenceId: refId,
+                                    type: "Volunteer Application",
+                                    status: "Verification Stage",
+                                    name: volunteerData.name,
+                                    phone: volunteerData.phone,
+                                    expertise: volunteerData.expertise,
+                                    availability: volunteerData.availability,
+                                    tools: volunteerData.tools,
+                                    district: volunteerData.district || districtName,
+                                    category: "humanitarian"
+                                  };
+
+                                  await firebaseService.submitReliefRequest(payload);
+
+                                  if (onAddReport) {
+                                    onAddReport({
+                                      id: refId,
+                                      location: payload.district,
+                                      type: "Volunteer Enrollment",
+                                      status: "Verification Stage",
+                                      time: "Just Now",
+                                      severity: "Medium",
+                                      description: `Volunteer: ${volunteerData.name}. Skills: ${volunteerData.expertise}.`,
+                                    });
+                                  }
+
+                                  setSuccessModal({ show: true, type: "volunteer", ref: refId });
+                                  setShowVolunteerForm(false);
+                                  setVolunteerData({
+                                    name: "", phone: "", expertise: "general",
+                                    experience: "none", availability: "all_day",
+                                    tools: "", district: "",
+                                  });
+                                } catch (err) {
+                                  console.error("Volunteer submission failed:", err);
+                                  alert("Submission failed. Try again.");
+                                } finally {
+                                  setIsSubmittingVolunteer(false);
+                                }
                               };
-                              setReliefRequests((prev) => [
-                                requestDetails,
-                                ...prev,
-                              ]);
-                              if (onAddReport)
-                                onAddReport({
-                                  id: ref,
-                                  location:
-                                    volunteerData.district || districtName,
-                                  type: "Volunteer Application",
-                                  status: "Verification Stage",
-                                  time: "Just Now",
-                                  severity: "Medium",
-                                  description: `Volunteer: ${volunteerData.name}. Skills: ${volunteerData.expertise}. Tools: ${volunteerData.tools}. Availability: ${volunteerData.availability}`,
-                                });
-                              setSuccessModal({
-                                show: true,
-                                type: "volunteer",
-                                ref,
-                              });
-                              setShowVolunteerForm(false);
-                              setVolunteerData({
-                                name: "",
-                                phone: "",
-                                expertise: "general",
-                                experience: "none",
-                                availability: "full",
-                                tools: "",
-                                district: "",
-                              });
+                              handleSubmit();
                             }}
                           >
                             <div className="space-y-3">
@@ -5933,41 +5917,26 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               <select
                                 className="w-full bg-slate-50 border border-slate-300 p-3 rounded-sm text-xs"
                                 value={volunteerData.availability}
-                                onChange={(e) =>
-                                  setVolunteerData({
-                                    ...volunteerData,
-                                    availability: e.target.value,
-                                  })
-                                }
+                                onChange={(e) => setVolunteerData({ ...volunteerData, availability: e.target.value })}
                               >
-                                <option value="full">
-                                  Full Day Availability
-                                </option>
-                                <option value="morning">
-                                  Morning Shift (6AM-2PM)
-                                </option>
-                                <option value="night">
-                                  Night Shift (10PM-6AM)
-                                </option>
+                                <option value="all_day">Full Day Availability</option>
+                                <option value="morning">Morning Shift (6AM-2PM)</option>
+                                <option value="night">Night Shift (10PM-6AM)</option>
                               </select>
                               <input
                                 placeholder="Equipment (e.g. Boat, 4x4, MedKit)"
                                 className="w-full bg-slate-50 border border-slate-300 p-3 rounded-sm text-xs"
                                 value={volunteerData.tools}
-                                onChange={(e) =>
-                                  setVolunteerData({
-                                    ...volunteerData,
-                                    tools: e.target.value,
-                                  })
-                                }
+                                onChange={(e) => setVolunteerData({ ...volunteerData, tools: e.target.value })}
                               />
                             </div>
                             <div className="flex gap-2 pt-2">
                               <button
                                 type="submit"
-                                className="flex-1 bg-[#0B3A68] text-white py-3 rounded-sm text-[10px] font-bold uppercase shadow-sm border border-[#0B3A68]"
+                                disabled={isSubmittingVolunteer}
+                                className="flex-1 bg-[#0B3A68] text-white py-3 rounded-sm text-[10px] font-bold uppercase shadow-sm border border-[#0B3A68] disabled:opacity-50"
                               >
-                                Submit Mission
+                                {isSubmittingVolunteer ? <Loader2 className="w-4 h-4 animate-spin mx-auto text-white" /> : "Submit Mission"}
                               </button>
                               <button
                                 type="button"
@@ -6047,56 +6016,51 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             className="space-y-4 flex-1"
                             onSubmit={(e) => {
                               e.preventDefault();
-                              const ref = generateInternalRef("CR");
-                              const requestDetails = {
-                                id: ref,
-                                type: "Counseling Request",
-                                status: "Pending Assignment",
-                                createdAt: new Date().toISOString(),
-                                caption:
-                                  "Counseling request logged and escalated to support dispatch.",
-                                payload: {
-                                  name: counselorData.name,
-                                  phone: counselorData.phone,
-                                  reason: counselorData.reason,
-                                  urgency: counselorData.urgency,
-                                  language: counselorData.language,
-                                  preferredMode: counselorData.preferredMode,
-                                },
+                              const handleSubmit = async () => {
+                                setIsSubmittingCounseling(true);
+                                try {
+                                  const refId = generateInternalRef("CR");
+                                  const payload = {
+                                    referenceId: refId,
+                                    type: "Counseling Request",
+                                    status: "Pending Assignment",
+                                    name: counselorData.name,
+                                    phone: counselorData.phone,
+                                    reason: counselorData.reason,
+                                    urgency: counselorData.urgency,
+                                    language: counselorData.language,
+                                    preferredMode: counselorData.preferredMode,
+                                    category: "humanitarian"
+                                  };
+
+                                  await firebaseService.submitReliefRequest(payload);
+
+                                  if (onAddReport) {
+                                    onAddReport({
+                                      id: refId,
+                                      location: `Priority: ${payload.urgency.toUpperCase()}`,
+                                      type: "Counseling Request",
+                                      status: "Dispatched",
+                                      time: "Just Now",
+                                      severity: payload.urgency === "sos" ? "Critical" : "High",
+                                      description: `Request for ${payload.name}. Need: ${payload.reason}.`,
+                                    });
+                                  }
+
+                                  setSuccessModal({ show: true, type: "counselor", ref: refId });
+                                  setShowCounselorForm(false);
+                                  setCounselorData({
+                                    name: "", phone: "", reason: "trauma",
+                                    urgency: "high", language: "english", preferredMode: "voice",
+                                  });
+                                } catch (err) {
+                                  console.error("Counseling request failed:", err);
+                                  alert("Request failed. Please try again.");
+                                } finally {
+                                  setIsSubmittingCounseling(false);
+                                }
                               };
-                              setReliefRequests((prev) => [
-                                requestDetails,
-                                ...prev,
-                              ]);
-                              if (onAddReport)
-                                onAddReport({
-                                  id: ref,
-                                  location:
-                                    "Priority: " +
-                                    counselorData.urgency.toUpperCase(),
-                                  type: "Counseling Request",
-                                  status: "Pending Assignment",
-                                  time: "Just Now",
-                                  severity:
-                                    counselorData.urgency === "sos"
-                                      ? "Critical"
-                                      : "High",
-                                  description: `Request for ${counselorData.name}. Need: ${counselorData.reason}. Language: ${counselorData.language}. Mode: ${counselorData.preferredMode}`,
-                                });
-                              setSuccessModal({
-                                show: true,
-                                type: "counselor",
-                                ref,
-                              });
-                              setShowCounselorForm(false);
-                              setCounselorData({
-                                name: "",
-                                phone: "",
-                                reason: "trauma",
-                                urgency: "high",
-                                language: "english",
-                                preferredMode: "voice",
-                              });
+                              handleSubmit();
                             }}
                           >
                             <div className="space-y-3">
@@ -6105,12 +6069,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 placeholder="Victim/Person Name"
                                 className="w-full bg-slate-50 border border-slate-300 p-3 rounded-sm text-xs"
                                 value={counselorData.name}
-                                onChange={(e) =>
-                                  setCounselorData({
-                                    ...counselorData,
-                                    name: e.target.value,
-                                  })
-                                }
+                                onChange={(e) => setCounselorData({ ...counselorData, name: e.target.value })}
                               />
                               <input
                                 required
@@ -6118,12 +6077,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 placeholder="Contact Number"
                                 className="w-full bg-slate-50 border border-slate-300 p-3 rounded-sm text-xs"
                                 value={counselorData.phone}
-                                onChange={(e) =>
-                                  setCounselorData({
-                                    ...counselorData,
-                                    phone: e.target.value,
-                                  })
-                                }
+                                onChange={(e) => setCounselorData({ ...counselorData, phone: e.target.value })}
                               />
                               <select
                                 className="w-full bg-slate-50 border border-slate-300 p-3 rounded-sm text-xs"
@@ -6194,9 +6148,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             <div className="flex gap-2 pt-2">
                               <button
                                 type="submit"
-                                className="flex-1 bg-[#0B3A68] text-white py-3 rounded-sm text-[10px] font-bold uppercase shadow-sm border border-[#0B3A68]"
+                                disabled={isSubmittingCounseling}
+                                className="flex-1 bg-[#0B3A68] text-white py-3 rounded-sm text-[10px] font-bold uppercase shadow-sm border border-[#0B3A68] disabled:opacity-50"
                               >
-                                Dispatch Request
+                                {isSubmittingCounseling ? <Loader2 className="w-4 h-4 animate-spin mx-auto text-white" /> : "Dispatch Request"}
                               </button>
                               <button
                                 type="button"
