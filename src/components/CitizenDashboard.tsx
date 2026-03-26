@@ -644,9 +644,133 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     message: "",
   });
   const [isRetryingAction, setIsRetryingAction] = useState(false);
+  // ── CWC Flood Station State (Hoisted for MAARG Predictor) ──
+  const [floodStations, setFloodStations] =
+    useState<FloodStation[]>(FLOOD_STATIONS);
+  const [floodLastRefresh, setFloodLastRefresh] = useState<Date>(new Date());
+  const [floodCategoryFilter, setFloodCategoryFilter] = useState<
+    Set<FloodCategory>
+  >(new Set(["normal", "above_normal", "severe", "extreme"]));
+  const [floodTypeFilter, setFloodTypeFilter] = useState<Set<StationType>>(
+    new Set(["base", "level", "inflow_forecast"]),
+  );
+  const [selectedFloodStation, setSelectedFloodStation] =
+    useState<FloodStation | null>(null);
+  const [showFloodPanel, setShowFloodPanel] = useState(true);
+  const [isFloodDataLoading, setIsFloodDataLoading] = useState(true);
+  const [hasLiveFloodData, setHasLiveFloodData] = useState(false);
+  const [adminProgressUpdates, setAdminProgressUpdates] = useState<any[]>([]);
+  const [commandCenterStatus, setCommandCenterStatus] = useState<string>("OPERATIONAL");
+  const [operationalUpdates, setOperationalUpdates] = useState<any[]>([]);
   const [generatedComplaintId, setGeneratedComplaintId] = useState<
     string | null
   >(null);
+
+  interface MappedStation {
+    name: string;
+    basin: string;
+    level: number;
+    warning: number;
+    danger: number;
+    trend: string;
+    status: string;
+    lat: number;
+    lng: number;
+  }
+
+  const mappedStations = useMemo<MappedStation[]>(() => {
+    const fs = floodStations || [];
+    return fs.map((st: any) => ({
+      name: st.station || st.name || "Unknown",
+      basin: st.river || st.basin || "",
+      level: st.last_level || st.currentLevel || 0,
+      warning: st.warning_level || st.warningLevel || 0,
+      danger: st.danger_level || st.dangerLevel || 0,
+      trend: st.trend || "Steady",
+      status:
+        (st.last_level || st.currentLevel) >= (st.danger_level || st.dangerLevel)
+          ? "CRITICAL"
+          : (st.last_level || st.currentLevel) >=
+              (st.warning_level || st.warningLevel)
+            ? "WARNING"
+            : "NORMAL",
+      lat: st.lat,
+      lng: st.lon,
+    }));
+  }, [floodStations]);
+
+  const trendSeriesByStation = useMemo<Record<string, any[]>>(() => {
+    const trendMap: Record<string, any[]> = {};
+    mappedStations.forEach((station) => {
+      trendMap[station.name] = generateTrendData(station.level);
+    });
+    return trendMap;
+  }, [mappedStations]);
+
+  const sortedStations = useMemo<MappedStation[]>(() => {
+    const stations = [...mappedStations];
+    if (userLat && userLng) {
+      stations.sort(
+        (a, b) =>
+          getDistance(userLat, userLng, a.lat, a.lng) -
+          getDistance(userLat, userLng, b.lat, b.lng),
+      );
+    }
+    return stations;
+  }, [mappedStations, userLat, userLng]);
+
+  const nearestRiskStation =
+    sortedStations.find((s) => s.level >= s.danger) ||
+    sortedStations.find((s) => s.level >= s.warning) ||
+    sortedStations[0] ||
+    { level: 0, danger: 2.5 };
+
+  const [maargRiskScore, setMaargRiskScore] = useState<number>(0);
+  const [maargRiskLevel, setMaargRiskLevel] = useState<string>("Stable");
+
+  // MAARG AI: Dynamic Risk Prediction Logic
+  useEffect(() => {
+    // Ported from MAARG Python logic: (Rainfall convergence and River Proximity)
+    const rain = globalWeather?.rain || 0;
+    const riverLevel = nearestRiskStation?.level || 0;
+    const dangerMark = nearestRiskStation?.danger || 2.5;
+
+    // Predictive Hazard Formula
+    const rainSignal = (rain / 50) * 0.4; // Weighted rain impact
+    const riverSignal = (riverLevel / dangerMark) * 0.6; // Weighted river surge impact
+    const rawScore = (rainSignal + riverSignal) * 100;
+
+    const finalScore = Math.max(0, Math.min(100, Math.round(rawScore)));
+    setMaargRiskScore(finalScore);
+
+    if (finalScore >= 75) setMaargRiskLevel("Critical Hazard");
+    else if (finalScore >= 40) setMaargRiskLevel("Vigilance Warning");
+    else setMaargRiskLevel("Stable / Clear");
+  }, [globalWeather, nearestRiskStation]);
+
+  const handleViewSafeZones = () => {
+    setActiveTab("map");
+    // Ensure map is hydrated before flying
+    setTimeout(() => {
+      if (mapRef && medicalFacilities.length > 0) {
+        // Sort for safety shelters first
+        const shelters = medicalFacilities.filter(
+          (f) => f.type === "shelter" || f.type === "hospital",
+        );
+        const target = shelters.length > 0 ? shelters[0] : medicalFacilities[0];
+        mapRef.flyTo([target.lat, target.lng], 16, {
+          animate: true,
+          duration: 2.5,
+        });
+        showToast(`Navigating to Nearest Safe Zone: ${target.name}`, "success");
+      } else {
+        showToast(
+          "Identifying Safe Zones... Please try again in a moment.",
+          "error",
+        );
+      }
+    }, 400); // 400ms for activeTab animation to settle
+  };
   const [trackingId, setTrackingId] = useState("");
   const [trackedComplaint, setTrackedComplaint] = useState<any>(null);
   const [reliefRequests, setReliefRequests] = useState<any[]>([]);
@@ -658,9 +782,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const REPORT_REF_MAP_KEY = "jal_report_reference_map";
 
   const generateInternalRef = (prefix: "RO" | "MP" | "VR" | "CR") => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let generated = prefix;
-    for (let i = 0; i < 9; i += 1) {
+    // Standardized 11-character Tactical ID (JAL-Sector-Unique)
+    const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let generated = `JAL-${prefix}-`; // JAL(3) + -(1) + PREFIX(2) + -(1) = 7 chars
+    
+    // Append 4 random chars to reach exactly 11 characters
+    for (let i = 0; i < 4; i += 1) {
       generated += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return generated;
@@ -668,7 +795,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
   const isPrefixedReference = (value: string) => {
     const val = value.toUpperCase();
-    return /^[A-Z]{2}[A-Z0-9]{9}$/.test(val) || /^JAL-\d{6}-[A-Z0-9]{3}$/.test(val);
+    // Validates 11-character Tactical IDs like JAL-XXX-XXX or JAL-MP-XXXX
+    return /^JAL-[A-Z0-9]{2,3}-[A-Z0-9]{3,4}$/.test(val) && val.length === 11;
   };
 
   const saveReportReferenceMapping = (
@@ -707,7 +835,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         title: "MISSING ALERT REGISTERED",
         subtitle: "Priority search broadcast has been pushed to command units",
         caption:
-          "MP-prefixed 11-character case ID generated. Search network, NDRF, and local control rooms are now synced.",
+          "JAL-MP prefixed 11-character case ID generated. Search network, NDRF, and local control rooms are now synced.",
       };
     }
     if (type === "volunteer") {
@@ -715,7 +843,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         title: "VOLUNTEER MISSION REGISTERED",
         subtitle: "Enrollment packet sent to operations desk",
         caption:
-          "VR-prefixed 11-character roster ID generated. Allocation team will map your skills and availability to active missions.",
+          "JAL-VR prefixed 11-character roster ID generated. Allocation team will map your skills and availability to active missions.",
       };
     }
     return {
@@ -929,21 +1057,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     }
   };
 
-  // ── CWC Flood Station State ──
-  const [floodStations, setFloodStations] =
-    useState<FloodStation[]>(FLOOD_STATIONS);
-  const [floodLastRefresh, setFloodLastRefresh] = useState<Date>(new Date());
-  const [floodCategoryFilter, setFloodCategoryFilter] = useState<
-    Set<FloodCategory>
-  >(new Set(["normal", "above_normal", "severe", "extreme"]));
-  const [floodTypeFilter, setFloodTypeFilter] = useState<Set<StationType>>(
-    new Set(["base", "level", "inflow_forecast"]),
-  );
-  const [selectedFloodStation, setSelectedFloodStation] =
-    useState<FloodStation | null>(null);
-  const [showFloodPanel, setShowFloodPanel] = useState(true);
-  const [isFloodDataLoading, setIsFloodDataLoading] = useState(true);
-  const [hasLiveFloodData, setHasLiveFloodData] = useState(false);
   const [mapDataUnavailable, setMapDataUnavailable] = useState(false);
 
   const showToast = (message: string, type: "error" | "success" = "error") => {
@@ -1329,6 +1442,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     document.documentElement.classList.remove("dark");
   }, []);
 
+
   useEffect(() => {
     let recognition: any = null;
 
@@ -1478,7 +1592,17 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     setNews(verifiedNews);
   }, [safetyLocation?.name]);
 
-  // Relief Requests Subscription
+  // Command Center Progress Subscription
+  useEffect(() => {
+    const unsub = firebaseService.subscribeToProgressUpdates((data) => {
+      setAdminProgressUpdates(data.mission_updates || []);
+      setCommandCenterStatus(data.command_center_status || "OPERATIONAL");
+      setOperationalUpdates(data.operational_updates || []);
+    });
+    return () => unsub();
+  }, []);
+
+  // Relief Requests Subscription (SOS Feed)
   useEffect(() => {
     const unsub = firebaseService.subscribeToReliefRequests((requests) => {
       setReliefRequests(requests);
@@ -1487,53 +1611,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   }, []);
 
 
-  const mappedStations = useMemo(() => {
-    const stations = floodStations.map((fs) => ({
-      name: fs.name,
-      basin: fs.river,
-      level: fs.currentLevel,
-      warning: fs.warningLevel,
-      danger: fs.dangerLevel,
-      hfl: fs.hfl,
-      trend: fs.trend || "Steady",
-      lat: fs.lat,
-      lng: fs.lon,
-    }));
-
-    if (userLat && userLng) {
-      stations.sort(
-        (a, b) =>
-          getDistance(userLat, userLng, a.lat, a.lng) -
-          getDistance(userLat, userLng, b.lat, b.lng),
-      );
-    }
-
-    return stations;
-  }, [floodStations, userLat, userLng]);
-
-  const trendSeriesByStation = useMemo(() => {
-    const trendMap: Record<string, any[]> = {};
-    mappedStations.forEach((station) => {
-      trendMap[station.name] = generateTrendData(station.level);
-    });
-    return trendMap;
-  }, [mappedStations]);
-
   const riverStations = mappedStations;
   const riverMonitoringStations = showAllRivers
     ? mappedStations
     : mappedStations.slice(0, 4);
-  const nearestRiskStation =
-    mappedStations.find((s) => s.level >= s.danger) ||
-    mappedStations.find((s) => s.level >= s.warning) ||
-    mappedStations[0];
-  const adminProgressUpdates: Array<{
-    area: string;
-    task: string;
-    status: "Completed" | "In Progress" | "Scheduled" | "Verified";
-    admin: string;
-    time: string;
-  }> = [];
   const progressFeedCards =
     adminProgressUpdates.length > 0
       ? adminProgressUpdates
@@ -1681,11 +1762,23 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           type: "success",
         });
 
+        const reportReference = generateInternalRef("RO");
         const result = await submitReportToFirebase(
           {
+            // Mission Specified Reference Number (11 characters total starting with JAL)
+            referenceId: reportReference,
+            
+            // Legacy fields (optional but kept for safety if needed by other components)
             name: formData.reporterName || "Anonymous Reporter",
             phone: formData.contact,
             address: formData.address,
+            
+            // Mandatory Admin Metadata (from images/mission-docs)
+            reporterName: formData.reporterName || "Anonymous Reporter",
+            reporterPhone: formData.contact,
+            reporterAddress: formData.reporterAddress,
+            uploadTimestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+            
             city: formData.city || "",
             state: formData.state || "",
             pincode: formData.pincode,
@@ -1695,15 +1788,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             image: proofFile!,
             latitude: locationCoords?.lat || 0,
             longitude: locationCoords?.lng || 0,
-            logTime: new Date().toISOString(),
-            reporterAddress: formData.reporterAddress
+            logTime: new Date().toISOString()
           }
         );
 
         console.log("Transmission result received:", result);
 
         if (result.success && result.reportId) {
-          const reportReference = result.reportId;
           console.log("Generated Mission Reference:", reportReference);
           setIsReporting(false);
           setReportSuccess(true);
@@ -1716,6 +1807,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             update: "Report submitted successfully",
             time: "Just Now",
           });
+
+          // Mission Control: Auto-refresh page in 5 seconds to sync telemetry
+          showToast(`Report ${reportReference} Generated. Refreshing dashboard in 5s...`, "success");
+          setTimeout(() => {
+            window.location.reload();
+          }, 5000);
 
           // Reset form
           setFormData({
@@ -2760,7 +2857,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         advised to remain vigilant and follow local advisories.
                       </p>
                     </div>
-                    <button className="indigo-button">{t.viewSafeZones}</button>
+                    <button
+                      onClick={handleViewSafeZones}
+                      className="indigo-button"
+                    >
+                      {t.viewSafeZones}
+                    </button>
                   </div>
 
                   {/* Safety Grid */}
@@ -2771,7 +2873,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           <div className="flex items-center gap-3">
                             <Activity className="text-ashoka-blue w-6 h-6" />
                             <div className="inline-flex items-center bg-ashoka-blue/10 text-ashoka-blue px-4 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-widest border border-ashoka-blue/20">
-                              Risk Analysis Intelligence
+                              {maargRiskLevel}
                             </div>
                           </div>
                           {!safetyLocation ? (
@@ -4805,9 +4907,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               </label>
                               <textarea
                                 value={formData.address}
-                                onChange={(e) => setFormData({...formData, address: e.target.value})}
-                                placeholder="Auto-filled from GPS location or enter manually"
-                                className={`w-full bg-cream border rounded-xl px-5 py-4 text-sm font-bold text-black/80 focus:outline-none transition-all resize-none h-24 ${errors.address ? "border-red-500 shadow-sm shadow-red-500/10" : "border-border hover:border-ashoka-blue"}`}
+                                readOnly
+                                placeholder="Auto-captured from tactical GPS location"
+                                className={`w-full bg-cream/50 border rounded-xl px-5 py-4 text-sm font-bold text-black/60 focus:outline-none transition-all resize-none h-24 cursor-not-allowed ${errors.address ? "border-red-500 shadow-sm shadow-red-500/10" : "border-border"}`}
                               />
                               {errors.address && (
                                 <p
@@ -4826,9 +4928,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 <input
                                   type="text"
                                   value={formData.city}
-                                  onChange={(e) => setFormData({...formData, city: e.target.value})}
-                                  placeholder="Auto-filled"
-                                  className={`w-full bg-cream border rounded-xl px-5 py-3.5 text-sm font-bold text-black/80 focus:outline-none transition-all ${errors.city ? "border-red-500" : "border-border hover:border-ashoka-blue"}`}
+                                  readOnly
+                                  placeholder="Auto-captured"
+                                  className={`w-full bg-cream/50 border rounded-xl px-5 py-3.5 text-sm font-bold text-black/60 focus:outline-none transition-all cursor-not-allowed ${errors.city ? "border-red-500" : "border-border"}`}
                                 />
                                 {errors.city && (
                                   <p
@@ -4846,9 +4948,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 <input
                                   type="text"
                                   value={formData.state}
-                                  onChange={(e) => setFormData({...formData, state: e.target.value})}
-                                  placeholder="Auto-filled"
-                                  className={`w-full bg-cream border rounded-xl px-5 py-3.5 text-sm font-bold text-black/80 focus:outline-none transition-all ${errors.state ? "border-red-500" : "border-border hover:border-ashoka-blue"}`}
+                                  readOnly
+                                  placeholder="Auto-captured"
+                                  className={`w-full bg-cream/50 border rounded-xl px-5 py-3.5 text-sm font-bold text-black/60 focus:outline-none transition-all cursor-not-allowed ${errors.state ? "border-red-500" : "border-border"}`}
                                 />
                                 {errors.state && (
                                   <p
@@ -4866,9 +4968,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 <input
                                   type="text"
                                   value={formData.pincode}
-                                  onChange={(e) => setFormData({...formData, pincode: e.target.value})}
-                                  placeholder="Auto-filled"
-                                  className={`w-full bg-cream border rounded-xl px-5 py-3.5 text-sm font-bold text-black/80 focus:outline-none transition-all ${errors.pincode ? "border-red-500" : "border-border hover:border-ashoka-blue"}`}
+                                  readOnly
+                                  placeholder="Auto-captured"
+                                  className={`w-full bg-cream/50 border rounded-xl px-5 py-3.5 text-sm font-bold text-black/60 focus:outline-none transition-all cursor-not-allowed ${errors.pincode ? "border-red-500" : "border-border"}`}
                                 />
                                 {errors.pincode && (
                                   <p
@@ -5598,11 +5700,19 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                   gender: missingPersonData.gender,
                                   lastSeenLocation: missingPersonData.lastSeenLocation,
                                   physicalFeatures: missingPersonData.physicalFeatures,
+                                  
+                                  // Admin Specified Metadata
+                                  reporterName: missingPersonData.contactName,
+                                  reporterPhone: missingPersonData.contactPhone,
+                                  reporterAddress: missingPersonData.contactAddress,
+                                  uploadTimestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+
                                   contactName: missingPersonData.contactName,
                                   contactPhone: missingPersonData.contactPhone,
                                   contactAddress: missingPersonData.contactAddress,
                                   category: "humanitarian",
                                   timestamp: new Date().toISOString(),
+                                  logTime: new Date().toISOString(),
                                   timeline: [
                                     {
                                       status: "Alert Created",
@@ -5632,6 +5742,11 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 }
 
                                 setSuccessModal({ show: true, type: "missing", ref });
+                                
+                                // Auto-refresh in 5 seconds
+                                showToast(`Missing Person Case ${ref} Registered. Auto-refresh in 5s.`, "success");
+                                setTimeout(() => window.location.reload(), 5000);
+
                                 setMissingPersonData({
                                   name: "", age: "", gender: "", lastSeenLocation: "",
                                   lastSeenTime: "", description: "", physicalFeatures: "",
@@ -5917,6 +6032,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                         type: "volunteer",
                                         name: volunteerData.name,
                                         phone: volunteerData.phone,
+                                        
+                                        // Admin Specified Metadata
+                                        reporterName: volunteerData.name,
+                                        reporterPhone: volunteerData.phone,
+                                        reporterAddress: volunteerData.address,
+                                        uploadTimestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+
                                         expertise: volunteerData.expertise,
                                         experience: volunteerData.experience,
                                         availability: volunteerData.availability,
@@ -5950,6 +6072,11 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                       }
 
                                       setSuccessModal({ show: true, type: "volunteer", ref: refId });
+                                      
+                                      // Auto-refresh in 5 seconds
+                                      showToast(`Enrollment ${refId} Submitted. Auto-refresh in 5s.`, "success");
+                                      setTimeout(() => window.location.reload(), 5000);
+
                                       setShowVolunteerForm(false);
                                       setVolunteerData({
                                         name: "", phone: "", address: "", expertise: "general",
@@ -6166,6 +6293,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                     type: "counseling",
                                     name: counselorData.name,
                                     phone: counselorData.phone,
+                                    
+                                    // Admin Specified Metadata
+                                    reporterName: counselorData.name,
+                                    reporterPhone: counselorData.phone,
+                                    reporterAddress: counselorData.address,
+                                    uploadTimestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+
                                     reason: counselorData.reason,
                                     urgency: counselorData.urgency,
                                     language: counselorData.language,

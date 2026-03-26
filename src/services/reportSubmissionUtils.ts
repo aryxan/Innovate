@@ -25,7 +25,11 @@ export interface ReportFormData {
   latitude: number;
   longitude: number;
   logTime?: string;
+  reporterName?: string;
+  reporterPhone?: string;
   reporterAddress?: string;
+  uploadTimestamp?: string;
+  referenceId?: string;
 }
 
 export interface ValidationErrors {
@@ -157,8 +161,8 @@ export async function submitReportToFirebase(
       };
     }
 
-    // Generate a unique reference ID
-    const referenceId = generateReportId();
+    // Generate a unique reference ID if not provided
+    const referenceId = formData.referenceId || generateReportId();
     const now = new Date();
 
     // Finalizing
@@ -172,10 +176,17 @@ export async function submitReportToFirebase(
     }
 
     // Create complaint object
-    const complaint: Omit<ComplaintReport, "id" | "createdAt"> = {
+    const complaint: ComplaintReport = {
       referenceId,
       userId: `user-${timestamp}`,
-      name: formData.name.trim(),
+      
+      // Admin Schema (MANDATORY)
+      reporterName: formData.reporterName?.trim() || formData.name.trim() || "Anonymous Reporter",
+      reporterPhone: formData.reporterPhone || formData.phone.replace(/\D/g, ""),
+      reporterAddress: formData.reporterAddress || formData.address.trim(),
+      uploadTimestamp: formData.uploadTimestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+
+      name: formData.name.trim() || "Anonymous Reporter",
       phone: formData.phone.replace(/\D/g, ""),
       location: formData.address.trim(),
       lat: formData.latitude,
@@ -190,19 +201,13 @@ export async function submitReportToFirebase(
       city: formData.city.trim(),
       state: formData.state.trim(),
       pincode: formData.pincode.trim(),
-      trustScore: 85, // Stabilized starting trust score
+      trustScore: 85,
       timeline: [
         {
           status: "pending",
           timestamp: new Date().toISOString(),
           message: "Tactical Incident Record Created",
           user: "System (Automation)"
-        },
-        {
-          status: "pending",
-          timestamp: new Date().toISOString(),
-          message: `Report filed for ${formData.issueType} with ${formData.waterLevel} level depth.`,
-          user: formData.name || "Citizen"
         }
       ],
     };
@@ -229,9 +234,19 @@ export async function submitReportToFirebase(
  * Generate a user-friendly report ID for display
  */
 export function generateReportId(): string {
-  const timestamp = Date.now().toString().slice(-6);
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `JAL-${timestamp}-${random}`;
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let idArr = [];
+  
+  // 3 chars for sector/prefix
+  for (let i = 0; i < 3; i++) idArr.push(chars.charAt(Math.floor(Math.random() * chars.length)));
+  const part1 = idArr.join("");
+  
+  idArr = [];
+  // 3 chars for second part
+  for (let i = 0; i < 3; i++) idArr.push(chars.charAt(Math.floor(Math.random() * chars.length)));
+  const part2 = idArr.join("");
+  
+  return `JAL-${part1}-${part2}`; // Exactly 11 characters (JAL(3) + -(1) + 3 + -(1) + 3)
 }
 
 
