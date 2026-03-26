@@ -108,7 +108,9 @@ class JalRakshakFirebase {
 
         if (missingVars.length > 0) {
           console.error(
-            `Missing Firebase env vars: ${missingVars.join(", ")}. Set them in .env.local before starting the app.`,
+            `Missing Firebase env vars: ${missingVars.join(", ")}. \n` +
+            `Local Dev: Set them in .env.local \n` +
+            `Vercel: Add them to Project Settings > Environment Variables.`,
           );
           this.initPromise = null;
           return false;
