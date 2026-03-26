@@ -52,6 +52,8 @@ import {
   Shield,
   Heart,
   FileCheck,
+  User,
+  Home,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { AreaChart, Area } from "recharts";
@@ -235,6 +237,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [volunteerData, setVolunteerData] = useState({
     name: "",
     phone: "",
+    address: "",
     expertise: "general",
     experience: "none",
     availability: "all_day",
@@ -247,6 +250,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [counselorData, setCounselorData] = useState({
     name: "",
     phone: "",
+    address: "",
     reason: "trauma",
     urgency: "high",
     language: "english",
@@ -258,6 +262,64 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [activeTrackingData, setActiveTrackingData] = useState<any>(null);
   const [isTrackingLookup, setIsTrackingLookup] = useState(false);
   const trackSubscriptionRef = useRef<(() => void) | null>(null);
+
+  const [formData, setFormData] = useState({
+    reporterName: "",
+    reporterAddress: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    contact: "",
+    issueType: "surface_flooding",
+    waterLevel: "low",
+    description: "",
+  });
+
+  const [missingPersonData, setMissingPersonData] = useState({
+    name: "",
+    age: "",
+    gender: "",
+    lastSeenLocation: "",
+    lastSeenTime: "",
+    description: "",
+    physicalFeatures: "",
+    contactName: "",
+    contactRelation: "",
+    contactAddress: "",
+    contactPhone: "",
+    isContactVerified: false,
+  });
+
+  const [missingPersonPhoto, setMissingPersonPhoto] = useState<File | null>(
+    null,
+  );
+  const [identityProof, setIdentityProof] = useState<File | null>(null);
+  const [isSubmittingMissing, setIsSubmittingMissing] = useState(false);
+  const [missingReportSuccess, setMissingReportSuccess] = useState(false);
+
+  const [locationCoords, setLocationCoords] = useState<{
+    lat: number;
+    lng: number;
+    address?: string;
+  } | null>(null);
+  const [safetyLocation, setSafetyLocation] = useState<{
+    lat: number;
+    lng: number;
+    name?: string;
+  } | null>(null);
+  const [otp, setOtp] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [otpStatus, setOtpStatus] = useState<
+    "idle" | "sent" | "verified" | "error"
+  >("idle");
+  const [otpStatusMessage, setOtpStatusMessage] = useState("");
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [isSafetyFetching, setIsSafetyFetching] = useState(false);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
 
   // tactical scroll reset on language or tab shift
   useEffect(() => {
@@ -546,39 +608,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
-  const [formData, setFormData] = useState({
-    reporterName: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-    contact: "",
-    issueType: "surface_flooding",
-    waterLevel: "low",
-    description: "",
-  });
-  const [locationCoords, setLocationCoords] = useState<{
-    lat: number;
-    lng: number;
-    address?: string;
-  } | null>(null);
-  const [safetyLocation, setSafetyLocation] = useState<{
-    lat: number;
-    lng: number;
-    name?: string;
-  } | null>(null);
-  const [otp, setOtp] = useState("");
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isOtpVerified, setIsOtpVerified] = useState(false);
-  const [otpStatus, setOtpStatus] = useState<
-    "idle" | "sent" | "verified" | "error"
-  >("idle");
-  const [otpStatusMessage, setOtpStatusMessage] = useState("");
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
-  const [isSafetyFetching, setIsSafetyFetching] = useState(false);
 
   const userLat = safetyLocation
     ? safetyLocation.lat
@@ -1395,26 +1424,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     }
   };
 
-  // Missing Person Form State
-  const [missingPersonData, setMissingPersonData] = useState({
-    name: "",
-    age: "",
-    gender: "",
-    lastSeenLocation: "",
-    lastSeenTime: "",
-    description: "",
-    physicalFeatures: "", // Additional details
-    contactName: "",
-    contactRelation: "",
-    contactPhone: "",
-    isContactVerified: false,
-  });
-  const [missingPersonPhoto, setMissingPersonPhoto] = useState<File | null>(
-    null,
-  );
-  const [identityProof, setIdentityProof] = useState<File | null>(null);
-  const [isSubmittingMissing, setIsSubmittingMissing] = useState(false);
-  const [missingReportSuccess, setMissingReportSuccess] = useState(false);
 
   // Verified Area-Based News Bulletin Intel
   useEffect(() => {
@@ -1639,6 +1648,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       newErrors.otp = "Please verify your contact number first.";
     if (!proofFile)
       newErrors.proof = "Please upload a photo or video as proof.";
+    if (!formData.reporterName || formData.reporterName.length < 2)
+      newErrors.reporterName = "Reporter name must be at least 2 characters.";
+    if (!formData.reporterAddress || formData.reporterAddress.length < 10)
+      newErrors.reporterAddress = "Reporter address must be at least 10 characters.";
     if (!formData.description || formData.description.length < 10)
       newErrors.description =
         "Please provide additional details (min 10 characters).";
@@ -1680,7 +1693,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             image: proofFile!,
             latitude: locationCoords?.lat || 0,
             longitude: locationCoords?.lng || 0,
-            logTime: new Date().toISOString()
+            logTime: new Date().toISOString(),
+            reporterAddress: formData.reporterAddress
           }
         );
 
@@ -1704,6 +1718,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           // Reset form
           setFormData({
             reporterName: "",
+            reporterAddress: "",
             address: formData.address,
             city: formData.city,
             state: formData.state,
@@ -4884,6 +4899,19 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                     className="w-full bg-cream border border-border rounded-xl px-5 py-3.5 text-sm focus:outline-none focus:border-ashoka-blue transition-all"
                                 />
                             </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                                    <Home className="w-3 h-3" /> Reporter Personal Address
+                                </label>
+                                <textarea
+                                    value={formData.reporterAddress}
+                                    onChange={(e) => setFormData({...formData, reporterAddress: e.target.value})}
+                                    placeholder="Enter your permanent/temporary address"
+                                    rows={2}
+                                    className="w-full bg-cream border border-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:border-ashoka-blue transition-all resize-none"
+                                />
+                            </div>
                           </div>
 
                           <div className="flex flex-col sm:flex-row gap-4 mt-2">
@@ -5530,6 +5558,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               );
                               return;
                             }
+                            if (!missingPersonData.contactAddress || missingPersonData.contactAddress.length < 10) {
+                              alert(
+                                selectedLanguage === "hi"
+                                  ? "रिपोटर का पता अनिवार्य है (कम से कम 10 शब्द)"
+                                  : "Reporter address is mandatory (min 10 chars)"
+                              );
+                              return;
+                            }
                             if (!missingPersonPhoto || !identityProof) {
                               alert(
                                 selectedLanguage === "hi"
@@ -5552,6 +5588,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                   physicalFeatures: missingPersonData.physicalFeatures,
                                   contactName: missingPersonData.contactName,
                                   contactPhone: missingPersonData.contactPhone,
+                                  contactAddress: missingPersonData.contactAddress,
                                   category: "humanitarian",
                                   timestamp: new Date().toISOString(),
                                   timeline: [
@@ -5587,7 +5624,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                   name: "", age: "", gender: "", lastSeenLocation: "",
                                   lastSeenTime: "", description: "", physicalFeatures: "",
                                   contactName: "", contactRelation: "", contactPhone: "",
-                                  isContactVerified: false,
+                                  contactAddress: "", isContactVerified: false,
                                 });
                                 setMissingPersonPhoto(null);
                                 setIdentityProof(null);
@@ -5719,6 +5756,19 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 setMissingPersonData({
                                   ...missingPersonData,
                                   contactName: e.target.value,
+                                })
+                              }
+                            />
+                            <textarea
+                              required
+                              placeholder="Reporter Address"
+                              className="w-full bg-white border border-slate-300 rounded-sm px-3 py-2 text-[11px] resize-none"
+                              rows={2}
+                              value={missingPersonData.contactAddress}
+                              onChange={(e) =>
+                                setMissingPersonData({
+                                  ...missingPersonData,
+                                  contactAddress: e.target.value,
                                 })
                               }
                             />
@@ -5860,7 +5910,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                         availability: volunteerData.availability,
                                         tools: volunteerData.tools,
                                         district: volunteerData.district || districtName,
+                                        address: volunteerData.address,
                                         category: "humanitarian",
+                                        logTime: new Date().toISOString(),
                                         timestamp: new Date().toISOString(),
                                         timeline: [
                                           {
@@ -5888,7 +5940,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                       setSuccessModal({ show: true, type: "volunteer", ref: refId });
                                       setShowVolunteerForm(false);
                                       setVolunteerData({
-                                        name: "", phone: "", expertise: "general",
+                                        name: "", phone: "", address: "", expertise: "general",
                                         experience: "none", availability: "all_day",
                                         tools: "", district: "",
                                       });
@@ -5941,6 +5993,19 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                   }
                                 />
                               </div>
+                              <textarea
+                                required
+                                placeholder="Current Mailing Address"
+                                className="w-full bg-slate-50 border border-slate-300 p-3 rounded-sm text-xs resize-none"
+                                rows={2}
+                                value={volunteerData.address}
+                                onChange={(e) =>
+                                  setVolunteerData({
+                                    ...volunteerData,
+                                    address: e.target.value,
+                                  })
+                                }
+                              />
                               <select
                                 className="w-full bg-slate-50 border border-slate-300 p-3 rounded-sm text-xs"
                                 value={volunteerData.expertise}
@@ -6093,7 +6158,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                     urgency: counselorData.urgency,
                                     language: counselorData.language,
                                     preferredMode: counselorData.preferredMode,
+                                    address: counselorData.address,
                                     category: "humanitarian",
+                                    logTime: new Date().toISOString(),
                                     timestamp: new Date().toISOString(),
                                     timeline: [
                                       {
@@ -6121,7 +6188,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                   setSuccessModal({ show: true, type: "counselor", ref });
                                   setShowCounselorForm(false);
                                   setCounselorData({
-                                    name: "", phone: "", reason: "trauma",
+                                    name: "", phone: "", address: "", reason: "trauma",
                                     urgency: "high", language: "english", preferredMode: "voice",
                                   });
                                 } catch (err) {

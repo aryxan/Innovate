@@ -25,6 +25,7 @@ export interface ReportFormData {
   latitude: number;
   longitude: number;
   logTime?: string;
+  reporterAddress?: string;
 }
 
 export interface ValidationErrors {
@@ -54,6 +55,11 @@ export function validateReportForm(formData: ReportFormData): ValidationErrors {
   // Address validation
   if (!formData.address?.trim()) {
     errors.address = "Address is required";
+  }
+
+  // Reporter Address validation
+  if (!formData.reporterAddress?.trim()) {
+    errors.reporterAddress = "Reporter address is required";
   }
 
   // City validation
