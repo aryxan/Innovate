@@ -583,6 +583,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           (err) => {
             console.warn("Location denied", err);
             setDeniedLocation(true);
+            setIsLoading(false);
             alert(
               selectedLanguage === "hi"
                 ? "स्थान की अनुमति अनिवार्य है। कृपया आगे बढ़ने के लिए स्थान तक पहुंच की अनुमति दें।"
@@ -593,6 +594,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         );
       } else {
         setDeniedLocation(true);
+        setIsLoading(false);
       }
     };
     if (!showLanguageSelector) {
@@ -4803,9 +4805,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               </label>
                               <textarea
                                 value={formData.address}
-                                readOnly
-                                placeholder="Auto-filled from GPS location"
-                                className={`w-full bg-slate-100 border rounded-xl px-5 py-4 text-sm font-bold text-black/80 focus:outline-none transition-all resize-none h-24 cursor-not-allowed ${errors.address ? "border-red-500 shadow-sm shadow-red-500/10" : "border-border"}`}
+                                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                placeholder="Auto-filled from GPS location or enter manually"
+                                className={`w-full bg-cream border rounded-xl px-5 py-4 text-sm font-bold text-black/80 focus:outline-none transition-all resize-none h-24 ${errors.address ? "border-red-500 shadow-sm shadow-red-500/10" : "border-border hover:border-ashoka-blue"}`}
                               />
                               {errors.address && (
                                 <p
@@ -4824,9 +4826,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 <input
                                   type="text"
                                   value={formData.city}
-                                  readOnly
+                                  onChange={(e) => setFormData({...formData, city: e.target.value})}
                                   placeholder="Auto-filled"
-                                  className={`w-full bg-slate-100 border rounded-xl px-5 py-3.5 text-sm font-bold text-black/80 focus:outline-none transition-all cursor-not-allowed ${errors.city ? "border-red-500" : "border-border"}`}
+                                  className={`w-full bg-cream border rounded-xl px-5 py-3.5 text-sm font-bold text-black/80 focus:outline-none transition-all ${errors.city ? "border-red-500" : "border-border hover:border-ashoka-blue"}`}
                                 />
                                 {errors.city && (
                                   <p
@@ -4844,9 +4846,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 <input
                                   type="text"
                                   value={formData.state}
-                                  readOnly
+                                  onChange={(e) => setFormData({...formData, state: e.target.value})}
                                   placeholder="Auto-filled"
-                                  className={`w-full bg-slate-100 border rounded-xl px-5 py-3.5 text-sm font-bold text-black/80 focus:outline-none transition-all cursor-not-allowed ${errors.state ? "border-red-500" : "border-border"}`}
+                                  className={`w-full bg-cream border rounded-xl px-5 py-3.5 text-sm font-bold text-black/80 focus:outline-none transition-all ${errors.state ? "border-red-500" : "border-border hover:border-ashoka-blue"}`}
                                 />
                                 {errors.state && (
                                   <p
@@ -4864,9 +4866,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 <input
                                   type="text"
                                   value={formData.pincode}
-                                  readOnly
+                                  onChange={(e) => setFormData({...formData, pincode: e.target.value})}
                                   placeholder="Auto-filled"
-                                  className={`w-full bg-slate-100 border rounded-xl px-5 py-3.5 text-sm font-bold text-black/80 focus:outline-none transition-all cursor-not-allowed ${errors.pincode ? "border-red-500" : "border-border"}`}
+                                  className={`w-full bg-cream border rounded-xl px-5 py-3.5 text-sm font-bold text-black/80 focus:outline-none transition-all ${errors.pincode ? "border-red-500" : "border-border hover:border-ashoka-blue"}`}
                                 />
                                 {errors.pincode && (
                                   <p
@@ -4896,8 +4898,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                     value={formData.reporterName}
                                     onChange={(e) => setFormData({...formData, reporterName: e.target.value})}
                                     placeholder="Enter your name"
-                                    className="w-full bg-cream border border-border rounded-xl px-5 py-3.5 text-sm focus:outline-none focus:border-ashoka-blue transition-all"
+                                    className={`w-full bg-cream border rounded-xl px-5 py-3.5 text-sm focus:outline-none transition-all ${errors.reporterName ? "border-red-500" : "border-border focus:border-ashoka-blue"}`}
                                 />
+                                {errors.reporterName && (
+                                    <p id="error-reporterName" className="text-[11px] text-red-500 font-bold mt-1 ml-1">
+                                        {errors.reporterName}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -4909,8 +4916,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                     onChange={(e) => setFormData({...formData, reporterAddress: e.target.value})}
                                     placeholder="Enter your permanent/temporary address"
                                     rows={2}
-                                    className="w-full bg-cream border border-border rounded-xl px-5 py-3 text-sm focus:outline-none focus:border-ashoka-blue transition-all resize-none"
+                                    className={`w-full bg-cream border rounded-xl px-5 py-3 text-sm focus:outline-none transition-all resize-none ${errors.reporterAddress ? "border-red-500" : "border-border focus:border-ashoka-blue"}`}
                                 />
+                                {errors.reporterAddress && (
+                                    <p id="error-reporterAddress" className="text-[11px] text-red-500 font-bold mt-1 ml-1">
+                                        {errors.reporterAddress}
+                                    </p>
+                                )}
                             </div>
                           </div>
 
