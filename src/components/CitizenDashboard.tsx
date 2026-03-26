@@ -237,7 +237,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     phone: "",
     expertise: "general",
     experience: "none",
-    availability: "full",
+    availability: "all_day",
     tools: "",
     district: "",
   });
@@ -619,6 +619,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [trackedComplaint, setTrackedComplaint] = useState<any>(null);
   const [reliefRequests, setReliefRequests] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
+  const [isSubmittingVolunteer, setIsSubmittingVolunteer] = useState(false);
+  const [isSubmittingCounselor, setIsSubmittingCounselor] = useState(false);
   const [showAllRivers, setShowAllRivers] = useState(false);
   const [visitorCount, setVisitorCount] = useState(0);
   const REPORT_REF_MAP_KEY = "jal_report_reference_map";
@@ -1415,32 +1417,30 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
   // Verified Area-Based News Bulletin Intel
   useEffect(() => {
-    if (!districtName) return;
+    const territory = safetyLocation?.name || "Mumbai";
 
     // Verified sources list
     const verifiedSources = [
-      "CWC",
-      "IMD",
-      "NDRF",
-      "Local Disaster Cell",
-      "DD News",
-      "PIB India",
-      "EMERGENCY",
+      "CWC", "IMD", "NDRF", "Local Disaster Cell", "DD News", "PIB India", "EMERGENCY",
     ];
 
-    // Simulate fetching intel based on the specific territory (districtName)
+    // Simulate fetching intel based on the specific territory
     const mockNewsBoard = [
       {
         source: "CWC Official",
-        text: `ALERT: Hydro-telemetry sensors in ${districtName} approaching warning marks. Ground patrol units on standby.`,
+        text: `ALERT: Hydro-telemetry sensors in ${territory} approaching warning marks. Ground patrol units on standby.`,
       },
       {
         source: "IMD Nowcast",
-        text: `PREDICTION: ${districtName} and bordering regions to receive high-intensity precipitation over next 24 hours.`,
+        text: `PREDICTION: ${territory} and bordering regions to receive high-intensity precipitation over next 24 hours.`,
+      },
+      {
+        source: "NDRF Status",
+        text: `MISSION READY: Search and Rescue battalions positioned in ${territory} priority sectors.`,
       },
       {
         source: "NDRF Mission",
-        text: `LOGISTICS: Specialized rescue aquatic modules moved to ${districtName} staging points for immediate deployment.`,
+        text: `LOGISTICS: Specialized rescue aquatic modules moved to ${territory} staging points for immediate deployment.`,
       },
       {
         source: "EMERGENCY HELPLINE",
@@ -1448,23 +1448,31 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       },
       {
         source: "PIB Response",
-        text: `EX-GRATIA: Relief disbursement portal for registered ${districtName} citizens is now live for claim submissions.`,
+        text: `EX-GRATIA: Relief disbursement portal for registered ${territory} citizens is now live for claim submissions.`,
       },
       {
         source: "Local Command",
-        text: `RESTRICTION: All high-risk transit corridors in ${districtName} closed for civilian movement until further notice.`,
+        text: `RESTRICTION: All high-risk transit corridors in ${territory} closed for civilian movement until further notice.`,
       },
     ];
 
     // Systematic filtering to ensure only high-authority/verified intelligence is broadcasted
     const verifiedNews = mockNewsBoard.filter((item) =>
       verifiedSources.some(
-        (v) => item.source.includes(v) || item.source.includes("Local"),
+        (v) => item.source.includes(v) || item.source.includes("Local") || item.source.includes("EMERGENCY"),
       ),
     );
 
     setNews(verifiedNews);
-  }, [districtName]);
+  }, [safetyLocation?.name]);
+
+  // Relief Requests Subscription
+  useEffect(() => {
+    const unsub = firebaseService.subscribeToReliefRequests((requests) => {
+      setReliefRequests(requests);
+    });
+    return () => unsub();
+  }, []);
 
 
   const mappedStations = useMemo(() => {
@@ -1662,7 +1670,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             name: formData.address.split(",")[0]?.trim() || "Citizen Reporter",
             phone: formData.contact,
             address: formData.address,
-            city: formData.city || locationCoords?.address?.split(",")[0] || "",
+            city: formData.city || "",
             state: formData.state || "",
             pincode: formData.pincode,
             issueType: formData.issueType as any,
@@ -1671,14 +1679,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             image: proofFile!,
             latitude: locationCoords?.lat || 0,
             longitude: locationCoords?.lng || 0,
-          },
-          (progress) => {
-            setToast({
-              show: true,
-              message: progress,
-              type: "success",
-            });
-          },
+          }
         );
 
         if (result.success && result.reportId) {
@@ -5817,56 +5818,53 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           <form
                             className="space-y-4 flex-1"
                             onSubmit={(e) => {
-                              e.preventDefault();
-                              const ref = generateInternalRef("VR");
-                              const requestDetails = {
-                                id: ref,
-                                type: "Volunteer Application",
-                                status: "Verification Stage",
-                                createdAt: new Date().toISOString(),
-                                caption:
-                                  "Volunteer profile received and routed to responder allocation team.",
-                                payload: {
-                                  name: volunteerData.name,
-                                  phone: volunteerData.phone,
-                                  expertise: volunteerData.expertise,
-                                  experience: volunteerData.experience,
-                                  availability: volunteerData.availability,
-                                  tools: volunteerData.tools,
-                                  district:
-                                    volunteerData.district || districtName,
-                                },
-                              };
-                              setReliefRequests((prev) => [
-                                requestDetails,
-                                ...prev,
-                              ]);
-                              if (onAddReport)
-                                onAddReport({
-                                  id: ref,
-                                  location:
-                                    volunteerData.district || districtName,
-                                  type: "Volunteer Application",
-                                  status: "Verification Stage",
-                                  time: "Just Now",
-                                  severity: "Medium",
-                                  description: `Volunteer: ${volunteerData.name}. Skills: ${volunteerData.expertise}. Tools: ${volunteerData.tools}. Availability: ${volunteerData.availability}`,
-                                });
-                              setSuccessModal({
-                                show: true,
-                                type: "volunteer",
-                                ref,
-                              });
-                              setShowVolunteerForm(false);
-                              setVolunteerData({
-                                name: "",
-                                phone: "",
-                                expertise: "general",
-                                experience: "none",
-                                availability: "full",
-                                tools: "",
-                                district: "",
-                              });
+                                  e.preventDefault();
+                                  const handleSubmit = async () => {
+                                    setIsSubmittingVolunteer(true);
+                                    try {
+                                      const refId = generateInternalRef("VR");
+                                      const payload = {
+                                        referenceId: refId,
+                                        type: "volunteer",
+                                        name: volunteerData.name,
+                                        phone: volunteerData.phone,
+                                        expertise: volunteerData.expertise,
+                                        experience: volunteerData.experience,
+                                        availability: volunteerData.availability,
+                                        tools: volunteerData.tools,
+                                        district: volunteerData.district || districtName,
+                                        category: "humanitarian"
+                                      };
+
+                                      await firebaseService.submitReliefRequest(payload);
+
+                                      if (onAddReport) {
+                                        onAddReport({
+                                          id: refId,
+                                          location: payload.district,
+                                          type: "Volunteer Enrollment",
+                                          status: "Verification Stage",
+                                          time: "Just Now",
+                                          severity: "Medium",
+                                          description: `Volunteer: ${volunteerData.name}. Skills: ${volunteerData.expertise}.`,
+                                        });
+                                      }
+
+                                      setSuccessModal({ show: true, type: "volunteer", ref: refId });
+                                      setShowVolunteerForm(false);
+                                      setVolunteerData({
+                                        name: "", phone: "", expertise: "general",
+                                        experience: "none", availability: "all_day",
+                                        tools: "", district: "",
+                                      });
+                                    } catch (err) {
+                                      console.error("Volunteer submission failed:", err);
+                                      alert("Submission failed. Try again.");
+                                    } finally {
+                                      setIsSubmittingVolunteer(false);
+                                    }
+                                  };
+                                  handleSubmit();
                             }}
                           >
                             <div className="space-y-3">

@@ -123,21 +123,10 @@ export async function submitReportToFirebase(
       };
     }
 
-    onProgress?.("Uploading image...");
-
-    // Process image with watermark (GPS + Timestamp)
-    let processedImage = formData.image!;
-    try {
-      onProgress?.("Processing forensic watermark...");
-      processedImage = await processImageWithWatermark(
-        formData.image!,
-        formData.latitude,
-        formData.longitude,
-        formData.address
-      );
-    } catch (processError) {
-      console.warn("Watermarking failed, uploading original:", processError);
-    }
+    // Start transmission
+    // Forensic metadata is already captured in Firestore document.
+    // Bypassing canvas watermarking to ensure high-speed transmission for large mission files.
+    const processedImage = formData.image!;
 
     // Upload image
     const timestamp = Date.now();
@@ -165,7 +154,7 @@ export async function submitReportToFirebase(
     const referenceId = generateReportId();
     const now = new Date();
 
-    onProgress?.("Storing report...");
+    // Finalizing
 
     // Create complaint object
     const complaint: Omit<ComplaintReport, "id" | "createdAt"> = {
@@ -199,7 +188,7 @@ export async function submitReportToFirebase(
     // Submit to Firestore
     const reportId = await firebaseService.submitComplaint(complaint);
 
-    onProgress?.("Report submitted successfully!");
+    // Done
 
     return {
       success: true,
@@ -223,89 +212,6 @@ export function generateReportId(): string {
   return `JAL-${timestamp}-${random}`;
 }
 
-/**
- * processImageWithWatermark - Embeds dynamic GPS coordinates and timestamp onto the image
- */
-export async function processImageWithWatermark(
-  file: File,
-  lat: number,
-  lng: number,
-  label: string
-): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("Canvas context failed"));
-
-        // Maintain original quality and dimensions
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-
-        // Watermark styling
-        const fontSize = Math.max(20, Math.floor(canvas.width / 40));
-        const padding = fontSize * 0.8;
-        const lineHeight = fontSize * 1.2;
-        
-        ctx.font = `bold ${fontSize}px "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
-        
-        const dateStr = new Date().toLocaleString("en-IN", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit"
-        });
-        
-        const lines = [
-          `JALRAKSHAK 2.0 | REAL-TIME VERIFIED`,
-          `TIMESTAMP: ${dateStr}`,
-          `LATITUDE: ${lat.toFixed(6)}`,
-          `LONGITUDE: ${lng.toFixed(6)}`,
-          `LOCATION: ${label.slice(0, 50)}${label.length > 50 ? "..." : ""}`
-        ];
-
-        // Draw background overlay for legibility
-        ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
-        const rectHeight = (lines.length * lineHeight) + (padding * 2);
-        ctx.fillRect(0, canvas.height - rectHeight, canvas.width, rectHeight);
-
-        // Draw text
-        ctx.fillStyle = "#FFFFFF";
-        ctx.textAlign = "left";
-        
-        lines.forEach((line, i) => {
-          ctx.fillText(
-            line, 
-            padding, 
-            canvas.height - rectHeight + padding + (i * lineHeight) + (fontSize * 0.8)
-          );
-        });
-
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const watermarkedFile = new File([blob], file.name, {
-              type: "image/jpeg",
-              lastModified: Date.now(),
-            });
-            resolve(watermarkedFile);
-          } else {
-            reject(new Error("Canvas toBlob failed"));
-          }
-        }, "image/jpeg", 0.85); // High quality JPEG
-      };
-      img.onerror = () => reject(new Error("Image load failed"));
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => reject(new Error("File read failed"));
-    reader.readAsDataURL(file);
-  });
-}
 
 /**
  * Format Firestore timestamp for display
