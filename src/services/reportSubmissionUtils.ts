@@ -98,7 +98,8 @@ export function validateReportForm(formData: ReportFormData): ValidationErrors {
  * Uploads image and creates Firestore document
  */
 export async function submitReportToFirebase(
-  formData: ReportFormData
+  formData: ReportFormData,
+  onProgress?: (progress: string) => void,
 ): Promise<{ success: boolean; reportId?: string; error?: string }> {
   try {
     // Validate form
@@ -122,11 +123,21 @@ export async function submitReportToFirebase(
       };
     }
 
-    // Start transmission
+    onProgress?.("Uploading image...");
 
-    // Forensic metadata is already captured in Firestore document.
-    // Bypassing canvas watermarking to ensure high-speed transmission for large mission files.
-    const processedImage = formData.image!;
+    // Process image with watermark (GPS + Timestamp)
+    let processedImage = formData.image!;
+    try {
+      onProgress?.("Processing forensic watermark...");
+      processedImage = await processImageWithWatermark(
+        formData.image!,
+        formData.latitude,
+        formData.longitude,
+        formData.address
+      );
+    } catch (processError) {
+      console.warn("Watermarking failed, uploading original:", processError);
+    }
 
     // Upload image
     const timestamp = Date.now();
@@ -154,7 +165,7 @@ export async function submitReportToFirebase(
     const referenceId = generateReportId();
     const now = new Date();
 
-    // Finalizing
+    onProgress?.("Storing report...");
 
     // Create complaint object
     const complaint: Omit<ComplaintReport, "id" | "createdAt"> = {
@@ -188,7 +199,7 @@ export async function submitReportToFirebase(
     // Submit to Firestore
     const reportId = await firebaseService.submitComplaint(complaint);
 
-    // Done
+    onProgress?.("Report submitted successfully!");
 
     return {
       success: true,

@@ -173,24 +173,6 @@ export class JalRakshakFirebase {
   }
 
   /**
-   * Upload multiple forensic assets for relief missions
-   */
-  async uploadReliefAssets(files: { [key: string]: File }, prefix: string): Promise<{ [key: string]: string }> {
-    await this.ensureInitialized();
-    if (!this.storage) throw new Error("Storage not initialized");
-
-    const urls: { [key: string]: string } = {};
-    for (const [key, file] of Object.entries(files)) {
-      if (!file) continue;
-      const path = `relief/${prefix}/${key}_${Date.now()}`;
-      const storageRef = ref(this.storage, path);
-      await uploadBytes(storageRef, file);
-      urls[key] = await getDownloadURL(storageRef);
-    }
-    return urls;
-  }
-
-  /**
    * Submit a new complaint to Firestore
    */
   async submitComplaint(complaint: Omit<ComplaintReport, "id" | "createdAt">): Promise<string> {
@@ -200,22 +182,6 @@ export class JalRakshakFirebase {
     const complaintsCol = collection(this.db, "complaints");
     const docRef = await addDoc(complaintsCol, {
       ...complaint,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-    });
-    return docRef.id;
-  }
-
-  /**
-   * Submit a humanitarian relief request (Missing Person, Volunteer, Counselor)
-   */
-  async submitReliefRequest(data: any): Promise<string> {
-    await this.ensureInitialized();
-    if (!this.db) throw new Error("Firestore not initialized");
-
-    const col = collection(this.db, "relief_requests");
-    const docRef = await addDoc(col, {
-      ...data,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
@@ -242,30 +208,6 @@ export class JalRakshakFirebase {
         ...doc.data(),
       })) as ComplaintReport[];
       callback(complaints);
-    });
-  }
-
-  /**
-   * Subscribe to real-time humanitarian relief updates
-   */
-  subscribeToReliefRequests(callback: (requests: any[]) => void): Unsubscribe {
-    if (!this.db) {
-       this.initialize().then(() => {
-         if (this.db) return this.subscribeToReliefRequests(callback);
-       });
-       return () => {};
-    }
-
-    const col = collection(this.db, "relief_requests");
-    const q = query(col, orderBy("createdAt", "desc"), limit(50));
-
-    return onSnapshot(q, (snapshot) => {
-      const requests = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()?.toISOString() || new Date().toISOString()
-      }));
-      callback(requests);
     });
   }
 
