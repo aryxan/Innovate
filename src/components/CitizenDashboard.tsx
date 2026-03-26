@@ -1671,7 +1671,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             name: formData.address.split(",")[0]?.trim() || "Citizen Reporter",
             phone: formData.contact,
             address: formData.address,
-            city: formData.city || locationCoords?.address?.split(",")[0] || "",
+            city: formData.city || "",
             state: formData.state || "",
             pincode: formData.pincode,
             issueType: formData.issueType as any,
@@ -1680,14 +1680,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             image: proofFile!,
             latitude: locationCoords?.lat || 0,
             longitude: locationCoords?.lng || 0,
-          },
-          (progress) => {
-            setToast({
-              show: true,
-              message: progress,
-              type: "success",
-            });
-          },
+          }
         );
 
         if (result.success && result.reportId) {
