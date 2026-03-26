@@ -156,6 +156,14 @@ export async function submitReportToFirebase(
 
     // Finalizing
 
+    // Calculate severity based on water level
+    let severity: "low" | "moderate" | "high" = "low";
+    if (formData.waterLevel === "head" || formData.waterLevel === "neck") {
+      severity = "high";
+    } else if (formData.waterLevel === "waist" || formData.waterLevel === "knee") {
+      severity = "moderate";
+    }
+
     // Create complaint object
     const complaint: Omit<ComplaintReport, "id" | "createdAt"> = {
       referenceId,
@@ -170,18 +178,25 @@ export async function submitReportToFirebase(
       description: formData.description.trim(),
       imageUrl,
       status: "pending",
-      severity: "low",
+      severity: severity,
       assignedTo: null,
       city: formData.city.trim(),
       state: formData.state.trim(),
       pincode: formData.pincode.trim(),
-      trustScore: 75, // Default trust score
+      trustScore: 85, // Stabilized starting trust score
       timeline: [
         {
           status: "pending",
-          timestamp: now,
-          message: "Report submitted by citizen via mobile portal",
+          timestamp: new Date().toISOString(),
+          message: "Tactical Incident Record Created",
+          user: "System (Automation)"
         },
+        {
+          status: "pending",
+          timestamp: new Date().toISOString(),
+          message: `Report filed for ${formData.issueType} with ${formData.waterLevel} level depth.`,
+          user: formData.name || "Citizen"
+        }
       ],
     };
 

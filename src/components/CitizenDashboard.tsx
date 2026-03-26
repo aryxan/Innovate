@@ -5532,7 +5532,20 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                   physicalFeatures: missingPersonData.physicalFeatures,
                                   contactName: missingPersonData.contactName,
                                   contactPhone: missingPersonData.contactPhone,
-                                  category: "humanitarian"
+                                  category: "humanitarian",
+                                  timestamp: new Date().toISOString(),
+                                  timeline: [
+                                    {
+                                      status: "Alert Created",
+                                      time: new Date().toLocaleTimeString(),
+                                      message: "Missing Person SOS lodged in JalRakshak Registry",
+                                    },
+                                    {
+                                      status: "Tracking Initiated",
+                                      time: new Date().toLocaleTimeString(),
+                                      message: `Reference ID assigned: ${ref}`,
+                                    }
+                                  ]
                                 };
 
                                 await firebaseService.submitReliefRequest(payload);
@@ -5827,7 +5840,15 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                         availability: volunteerData.availability,
                                         tools: volunteerData.tools,
                                         district: volunteerData.district || districtName,
-                                        category: "humanitarian"
+                                        category: "humanitarian",
+                                        timestamp: new Date().toISOString(),
+                                        timeline: [
+                                          {
+                                            status: "Enrollment Started",
+                                            time: new Date().toLocaleTimeString(),
+                                            message: "Volunteer application synchronized with backend mission control",
+                                          }
+                                        ]
                                       };
 
                                       await firebaseService.submitReliefRequest(payload);
@@ -6052,7 +6073,15 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                     urgency: counselorData.urgency,
                                     language: counselorData.language,
                                     preferredMode: counselorData.preferredMode,
-                                    category: "humanitarian"
+                                    category: "humanitarian",
+                                    timestamp: new Date().toISOString(),
+                                    timeline: [
+                                      {
+                                        status: "Counseling Logged",
+                                        time: new Date().toLocaleTimeString(),
+                                        message: `Crisis counseling request created for urgency: ${counselorData.urgency.toUpperCase()}`,
+                                      }
+                                    ]
                                   };
 
                                   await firebaseService.submitReliefRequest(payload);
