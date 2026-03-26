@@ -550,6 +550,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const searchRef = useRef<HTMLDivElement>(null);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const [formData, setFormData] = useState({
+    reporterName: "",
     address: "",
     city: "",
     state: "",
@@ -1665,10 +1666,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           type: "success",
         });
 
-        console.log("Transmission initiated with payload:", formData);
         const result = await submitReportToFirebase(
           {
-            name: formData.address.split(",")[0]?.trim() || "Citizen Reporter",
+            name: formData.reporterName || "Anonymous Reporter",
             phone: formData.contact,
             address: formData.address,
             city: formData.city || "",
@@ -1680,6 +1680,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             image: proofFile!,
             latitude: locationCoords?.lat || 0,
             longitude: locationCoords?.lng || 0,
+            logTime: new Date().toISOString()
           }
         );
 
@@ -1702,6 +1703,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
           // Reset form
           setFormData({
+            reporterName: "",
             address: formData.address,
             city: formData.city,
             state: formData.state,
@@ -4709,6 +4711,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         <p className="text-ink/60 text-sm mb-7 max-w-md mx-auto leading-relaxed">
                           {t.reportSubmittedMsg}
                         </p>
+                        <div className="mb-6">
+                            <span className="text-[10px] font-mono text-ashoka-blue uppercase tracking-widest block mb-1">Reporter Reference</span>
+                            <span className="text-sm font-bold text-ashoka-blue uppercase">{formData.reporterName}</span>
+                        </div>
                         <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white p-7 rounded-2xl mb-8 max-w-sm mx-auto border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
                           <span className="text-[10px] font-mono text-white/50 uppercase tracking-[0.2em] block mb-2">
                             Official Tracking Reference
@@ -4860,13 +4866,27 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           </div>
                         </div>
 
-                        {/* Contact Section */}
+                        {/* Reporter Details Section */}
                         <div className="space-y-6">
                           <label className="text-[11px] font-black uppercase tracking-widest text-black/70 flex items-center gap-2 border-b border-border pb-4 w-full">
-                            <Smartphone className="w-4 h-4 text-ashoka-blue" />{" "}
-                            2. {t.contactVerification}
+                            <User className="w-4 h-4 text-ashoka-blue" />{" "}
+                            2. Reporter Details
                           </label>
-                          <div className="flex flex-col sm:flex-row gap-4">
+                          
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest ml-1">Full Name of Reporter</label>
+                                <input
+                                    type="text"
+                                    value={formData.reporterName}
+                                    onChange={(e) => setFormData({...formData, reporterName: e.target.value})}
+                                    placeholder="Enter your name"
+                                    className="w-full bg-cream border border-border rounded-xl px-5 py-3.5 text-sm focus:outline-none focus:border-ashoka-blue transition-all"
+                                />
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-4 mt-2">
                             <div className="flex-1 relative">
                               <input
                                 type="tel"

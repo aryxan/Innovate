@@ -24,6 +24,7 @@ export interface ReportFormData {
   image: File | null;
   latitude: number;
   longitude: number;
+  logTime?: string;
 }
 
 export interface ValidationErrors {
