@@ -665,6 +665,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [generatedComplaintId, setGeneratedComplaintId] = useState<
     string | null
   >(null);
+  const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
+  const [isRefreshingProgress, setIsRefreshingProgress] = useState(false);
 
   interface MappedStation {
     name: string;
