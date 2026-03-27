@@ -270,13 +270,21 @@ app.get("/api/flood-data", async (req, res) => {
     
     devLog("-> Syncing Hydro-Meteorological Data...");
 
+    const headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "application/json, text/plain, */*",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Origin": "https://ffs.india-water.gov.in",
+      "Referer": "https://ffs.india-water.gov.in/"
+    };
+
     const [waterLevelRaw, rainfallRaw] = await Promise.allSettled([
       fetchJsonWithTimeoutRetry(waterLevelUrl, {
-        headers: { "class-name": "StationWaterLevelAboveWarningDto" }
-      }, { timeoutMs: FLOOD_TIMEOUT_MS, label: "WRIS-Level" }),
+        headers: { ...headers, "class-name": "StationWaterLevelAboveWarningDto" }
+      }, { timeoutMs: 8000, label: "WRIS-Level" }),
       fetchJsonWithTimeoutRetry(rainfallUrl, {
-        headers: { "class-name": "StationRainfallAboveWarningDto" }
-      }, { timeoutMs: FLOOD_TIMEOUT_MS, label: "WRIS-Rain" })
+        headers: { ...headers, "class-name": "StationRainfallAboveWarningDto" }
+      }, { timeoutMs: 8000, label: "WRIS-Rain" })
     ]);
 
     const waterLevels = waterLevelRaw.status === 'fulfilled' ? waterLevelRaw.value : [];

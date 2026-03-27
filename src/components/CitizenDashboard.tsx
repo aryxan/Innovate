@@ -223,6 +223,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isReporting, setIsReporting] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
+  const [generatedComplaintId, setGeneratedComplaintId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showLanguageSelector, setShowLanguageSelector] = useState(true);
   const [deniedLocation, setDeniedLocation] = useState(false);
@@ -707,8 +708,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             ? "WARNING"
             : "NORMAL"
       ),
-      lat: st.location?.lat || st.lat,
-      lng: st.location?.lon || st.lng,
+      lat: st.location?.lat !== undefined ? st.location.lat : (st.lat || 0),
+      lng: st.location?.lon !== undefined ? st.location.lon : (st.location?.lng !== undefined ? st.location.lng : (st.lon || st.lng || 0)),
       rainfall: Number(st.rainfall || 0),
     }));
   }, [floodStations]);
@@ -737,7 +738,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     sortedStations.find((s) => s.level >= s.danger) ||
     sortedStations.find((s) => s.level >= s.warning) ||
     sortedStations[0] ||
-    { level: 0, danger: 2.5 };
+    { name: "Safe", level: 0, danger: 2.5, lat: 0, lng: 0, warning: 1, basin: "", trend: "Steady", status: "NORMAL" };
 
   const [maargRiskScore, setMaargRiskScore] = useState<number>(0);
   const [maargRiskLevel, setMaargRiskLevel] = useState<string>("Stable");
@@ -1124,9 +1125,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const fetchFloodData = async (manual = false) => {
     setIsFloodDataLoading(true);
     try {
-      const payload = await fetchJsonWithTimeoutRetry(
-        `${API_BASE_URL}/api/flood-data`,
-      );
+      const url = new URL(`${API_BASE_URL}/api/flood-data`);
+      if (userLat && userLng) {
+        url.searchParams.append("lat", userLat.toString());
+        url.searchParams.append("lon", userLng.toString());
+      }
+      const payload = await fetchJsonWithTimeoutRetry(url.toString());
 
       if (!payload?.success || !Array.isArray(payload.data)) {
         throw new Error("Invalid flood payload");
@@ -4022,8 +4026,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                                 selectedFloodStation?.id === station.id;
                               return (
                                 <CircleMarker
-                                  key={station.id}
-                                  center={[station.lat, station.lon]}
+                                  key={station.id || `cwc-station-${Math.random()}`}
+                                  center={[station.lat !== undefined ? station.lat : ((station as any).location?.lat || 0), station.lon !== undefined ? station.lon : ((station as any).location?.lon || 0)]}
                                   radius={isSelected ? 14 : 9}
                                   pathOptions={{
                                     color: isSelected ? "#ffffff" : color,

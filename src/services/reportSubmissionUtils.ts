@@ -197,6 +197,7 @@ export async function submitReportToFirebase(
       imageUrl,
       status: "pending",
       severity: severity,
+      createdAt: new Date().toISOString(),
       assignedTo: null,
       city: formData.city.trim(),
       state: formData.state.trim(),
