@@ -8,11 +8,6 @@ import { motion, AnimatePresence } from "motion/react";
 
 const LandingPage = lazy(() => import("./components/LandingPage"));
 const CitizenDashboard = lazy(() => import("./components/CitizenDashboard"));
-const AdminLogin = lazy(() =>
-  import("./components/AdminLogin").then((module) => ({
-    default: module.AdminLogin,
-  })),
-);
 const AdminDashboard = lazy(() =>
   import("./components/AdminDashboard").then((module) => ({
     default: module.AdminDashboard,
@@ -23,11 +18,42 @@ type ViewState =
   | "landing"
   | "loading"
   | "citizen"
-  | "admin_login"
   | "admin_dashboard";
 
+const VIEW_QUERY_PARAM = "view";
+
+const isViewState = (value: string | null): value is ViewState => {
+  return (
+    value === "landing" ||
+    value === "loading" ||
+    value === "citizen" ||
+    value === "admin_dashboard"
+  );
+};
+
+const readViewFromUrl = (): ViewState | null => {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const viewParam = params.get(VIEW_QUERY_PARAM);
+  return isViewState(viewParam) ? viewParam : null;
+};
+
+const writeViewToUrl = (view: ViewState, replace = false) => {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  url.searchParams.set(VIEW_QUERY_PARAM, view);
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+
+  if (replace) {
+    window.history.replaceState({ view }, "", nextUrl);
+    return;
+  }
+
+  window.history.pushState({ view }, "", nextUrl);
+};
+
 export default function App() {
-  const [view, setView] = useState<ViewState>("citizen");
+  const [view, setView] = useState<ViewState>("landing");
   const [isAdmin, setIsAdmin] = useState(false);
   const [missionReports, setMissionReports] = useState<any[]>([]);
 
@@ -51,27 +77,50 @@ export default function App() {
   // Check for existing admin session
   useEffect(() => {
     const savedAdmin = localStorage.getItem("isAdmin");
-    if (savedAdmin === "true") {
-      setIsAdmin(true);
-    }
+    const hasAdminSession = savedAdmin === "true";
+    setIsAdmin(hasAdminSession);
+
+    const urlView = readViewFromUrl();
+    const initialView =
+      urlView === "admin_dashboard" && !hasAdminSession
+        ? "landing"
+        : urlView || (hasAdminSession ? "admin_dashboard" : "landing");
+
+    setView(initialView);
+    writeViewToUrl(initialView, true);
+
+    const handlePopState = () => {
+      const poppedView = readViewFromUrl();
+      if (!poppedView) {
+        setView("landing");
+        return;
+      }
+
+      if (poppedView === "admin_dashboard" && !hasAdminSession) {
+        setView("landing");
+        return;
+      }
+
+      setView(poppedView);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const handleLaunch = () => {
-    setView("citizen");
+  const navigateToView = (nextView: ViewState, replace = false) => {
+    setView(nextView);
+    writeViewToUrl(nextView, replace);
   };
 
-  const handleAdminAuth = (password: string) => {
-    if (password === "admin123") {
-      setIsAdmin(true);
-      localStorage.setItem("isAdmin", "true");
-      setView("admin_dashboard");
-    }
+  const handleLaunch = () => {
+    navigateToView("citizen");
   };
 
   const handleLogout = () => {
     setIsAdmin(false);
     localStorage.removeItem("isAdmin");
-    setView("landing");
+    navigateToView("landing");
   };
 
   return (
@@ -92,10 +141,7 @@ export default function App() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <LandingPage
-              onLaunch={handleLaunch}
-              onAdminPortal={() => setView("admin_login")}
-            />
+            <LandingPage onLaunch={handleLaunch} />
           </motion.div>
         )}
 
@@ -163,23 +209,8 @@ export default function App() {
             transition={{ duration: 1 }}
           >
             <CitizenDashboard
-              onExit={() => setView("landing")}
+              onExit={() => navigateToView("landing")}
               onAddReport={handleAddReport}
-            />
-          </motion.div>
-        )}
-
-        {view === "admin_login" && (
-          <motion.div
-            key="admin_login"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.5 }}
-          >
-            <AdminLogin
-              onLogin={handleAdminAuth}
-              onBack={() => setView("citizen")}
             />
           </motion.div>
         )}
@@ -193,7 +224,7 @@ export default function App() {
             transition={{ duration: 1 }}
           >
             <AdminDashboard
-              onExit={() => setView("landing")}
+              onExit={() => navigateToView("landing")}
               onLogout={handleLogout}
               reports={missionReports}
             />

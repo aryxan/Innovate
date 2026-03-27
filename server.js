@@ -70,6 +70,66 @@ async function fetchJsonWithTimeoutRetry(url, options = {}, config = {}) {
   throw lastError || new Error(`${label} unknown fetch error`);
 }
 
+async function fetchTextWithTimeoutRetry(url, options = {}, config = {}) {
+  const timeoutMs = config.timeoutMs ?? 7000;
+  const retries = config.retries ?? 2;
+  const label = config.label ?? "API";
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      devLog(`-> ${label} attempt ${attempt + 1}: ${url}`);
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`${label} HTTP ${response.status}`);
+      }
+
+      const text = await response.text();
+      clearTimeout(timeoutId);
+      return text;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error;
+      if (attempt < retries) {
+        await sleep(300 * (attempt + 1));
+        continue;
+      }
+      throw lastError;
+    }
+  }
+
+  throw lastError || new Error(`${label} unknown fetch error`);
+}
+
+function extractNumericTagValues(xml, tagName) {
+  const regex = new RegExp(`<${tagName}>([^<]+)</${tagName}>`, "g");
+  const values = [];
+  let match;
+
+  while ((match = regex.exec(xml)) !== null) {
+    const parsed = Number(match[1]);
+    if (Number.isFinite(parsed)) {
+      values.push(parsed);
+    }
+  }
+
+  return values;
+}
+
+function average(values) {
+  if (!values.length) {
+    return 0;
+  }
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 function buildMockWeather(lat, lon) {
   const now = new Date();
   const hour = now.getHours();
@@ -358,6 +418,51 @@ app.get("/api/flood-data", async (req, res) => {
 
 app.get("/api/cwc-flood-data", (_req, res) => {
   res.redirect(307, "/api/flood-data");
+});
+
+app.get("/api/model-signals", async (_req, res) => {
+  try {
+    const apiKey =
+      process.env.SOIL_MOISTURE_API_KEY ||
+      process.env.RAINFALL_API_KEY ||
+      "579b464db66ec23bdd0000015c329c8f705141aa5ee7bb933250257a";
+
+    const soilUrl =
+      process.env.SOIL_MOISTURE_API_URL ||
+      `https://api.data.gov.in/resource/4554a3c8-74e3-4f93-8727-8fd92161e345?api-key=${encodeURIComponent(apiKey)}&format=xml`;
+
+    const rainfallUrl =
+      process.env.RAINFALL_API_URL ||
+      `https://api.data.gov.in/resource/6c05cd1b-ed59-40c2-bc31-e314f39c6971?api-key=${encodeURIComponent(apiKey)}&format=xml`;
+
+    const [soilXml, rainfallXml] = await Promise.all([
+      fetchTextWithTimeoutRetry(soilUrl, {}, { label: "Soil Moisture" }),
+      fetchTextWithTimeoutRetry(rainfallUrl, {}, { label: "Rainfall" }),
+    ]);
+
+    const soilValues = extractNumericTagValues(soilXml, "Avg_smlvl_at15cm");
+    const rainfallValues = extractNumericTagValues(rainfallXml, "Avg_rainfall");
+
+    return res.json({
+      success: true,
+      source: "data.gov.in",
+      data: {
+        soil_moisture_avg: Number(average(soilValues).toFixed(3)),
+        rainfall_avg: Number(average(rainfallValues).toFixed(3)),
+        soil_samples: soilValues.length,
+        rainfall_samples: rainfallValues.length,
+      },
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    devLog("Model signals API failed", error?.message || error);
+    return res.status(503).json({
+      success: false,
+      source: "data.gov.in",
+      message: "Model signals unavailable",
+      updatedAt: new Date().toISOString(),
+    });
+  }
 });
 
 app.listen(PORT, () => {

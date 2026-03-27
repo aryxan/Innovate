@@ -140,6 +140,80 @@ const getDistance = (
   return R * c;
 };
 
+type ReverseGeocodeAddress = {
+  city?: string;
+  town?: string;
+  village?: string;
+  suburb?: string;
+  neighbourhood?: string;
+  residential?: string;
+  road?: string;
+  district?: string;
+  state?: string;
+  state_district?: string;
+  county?: string;
+  region?: string;
+  postcode?: string;
+};
+
+type ReverseGeocodePayload = {
+  display_name?: string;
+  address?: ReverseGeocodeAddress;
+};
+
+type FloodModelPrediction = {
+  station_mapped: string;
+  target_date: string;
+  predicted_flood_level_m: number;
+  historical_baseline_m: number;
+  runoff_coefficient: number;
+  sensor_anomaly_score?: number;
+  mapped_sensor_flow_m3s?: number;
+  risk_status: string;
+  recent_weather_summary: Array<Record<string, unknown>>;
+};
+
+const firstNonEmpty = (...values: Array<string | undefined>) =>
+  values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim() || "";
+
+const normalizeStateName = (stateCandidate: string, cityCandidate: string, displayName: string) => {
+  if (/national capital territory of delhi|nct of delhi/i.test(stateCandidate)) {
+    return "Delhi";
+  }
+
+  if (!stateCandidate && /\bdelhi\b/i.test(`${cityCandidate} ${displayName}`)) {
+    return "Delhi";
+  }
+
+  return stateCandidate;
+};
+
+const extractAddressFields = (payload: ReverseGeocodePayload) => {
+  const address = payload?.address || {};
+  const city = firstNonEmpty(
+    address.city,
+    address.town,
+    address.village,
+    address.suburb,
+    address.district,
+    address.state_district,
+  );
+  const rawState = firstNonEmpty(
+    address.state,
+    address.region,
+    address.state_district,
+    address.county,
+  );
+  const state = normalizeStateName(rawState, city, payload?.display_name || "");
+  const pincode = (address.postcode || "").match(/\d{6}/)?.[0] || "";
+
+  return {
+    city,
+    state,
+    pincode,
+  };
+};
+
 const generateTrendData = (baseLevel: number) => {
   return Array.from({ length: 12 }, (_, i) => ({
     time: `${i * 2}:00`,
@@ -206,6 +280,13 @@ const MapControls = () => {
   );
 };
 
+const INDIA_MAP_BOUNDS: [[number, number], [number, number]] = [
+  [5.5, 67.0],
+  [37.5, 98.5],
+];
+const MAP_MIN_ZOOM = 5;
+const MAP_MAX_ZOOM = 19;
+
 export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   onExit,
   onAddReport,
@@ -214,6 +295,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
     (typeof window !== "undefined" ? window.location.origin : "");
+  const FLOOD_MODEL_BASE_URL =
+    import.meta.env.VITE_FLOOD_MODEL_API_URL ||
+    "https://jalrakshakmodel.onrender.com";
   const [activeTab, setActiveTab] = useState<
     "safety" | "map" | "report" | "floodRelief"
   >("safety");
@@ -271,6 +355,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [activeTrackingData, setActiveTrackingData] = useState<any>(null);
   const [isTrackingLookup, setIsTrackingLookup] = useState(false);
   const trackSubscriptionRef = useRef<(() => void) | null>(null);
+  const reportSuccessRef = useRef<HTMLDivElement | null>(null);
 
   const [formData, setFormData] = useState({
     reporterName: "",
@@ -329,6 +414,16 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (!reportSuccess || !reportSuccessRef.current) return;
+    requestAnimationFrame(() => {
+      reportSuccessRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+  }, [reportSuccess]);
 
   // tactical scroll reset on language or tab shift
   useEffect(() => {
@@ -547,20 +642,16 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               const res = await fetch(
                 `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
               );
-              const data = await res.json();
+              const data: ReverseGeocodePayload = await res.json();
+              const parsedAddress = extractAddressFields(data);
 
-              const locName =
-                data.address.city ||
-                data.address.town ||
-                data.address.district ||
-                data.address.state ||
-                "India";
+              const locName = parsedAddress.city || parsedAddress.state || "India";
               setDistrictName(locName);
 
               const locationLabel =
-                data.address.suburb ||
-                data.address.neighbourhood ||
-                data.address.road ||
+                data.address?.suburb ||
+                data.address?.neighbourhood ||
+                data.address?.road ||
                 locName;
               setSafetyLocation({
                 lat: latitude,
@@ -571,14 +662,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               setFormData((prev) => ({
                 ...prev,
                 address: data.display_name || "",
-                city:
-                  data.address.city ||
-                  data.address.town ||
-                  data.address.suburb ||
-                  data.address.district ||
-                  "",
-                state: data.address.state || "",
-                pincode: data.address.postcode || "",
+                city: parsedAddress.city,
+                state: parsedAddress.state,
+                pincode: parsedAddress.pincode,
               }));
               setLocationCoords({
                 lat: latitude,
@@ -741,27 +827,221 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     { name: "Safe", level: 0, danger: 2.5, lat: 0, lng: 0, warning: 1, basin: "", trend: "Steady", status: "NORMAL" };
 
   const [maargRiskScore, setMaargRiskScore] = useState<number>(0);
-  const [maargRiskLevel, setMaargRiskLevel] = useState<string>("Stable");
+  const [maargRiskLevel, setMaargRiskLevel] = useState<string>("Awaiting Location");
+  const [modelPrediction, setModelPrediction] =
+    useState<FloodModelPrediction | null>(null);
+  const [isModelPredicting, setIsModelPredicting] = useState(false);
+  const [modelPredictionError, setModelPredictionError] = useState<string | null>(
+    null,
+  );
+  const [runoffCoefficientInput, setRunoffCoefficientInput] = useState("");
+  const [modelSignals, setModelSignals] = useState<{
+    soilMoistureAvg: number;
+    rainfallAvg: number;
+  } | null>(null);
+  const [isModelSignalsLoading, setIsModelSignalsLoading] = useState(false);
 
-  // MAARG AI: Dynamic Risk Prediction Logic
-  useEffect(() => {
-    // Ported from MAARG Python logic: (Rainfall convergence and River Proximity)
+  const runoffCoefficient = Number(runoffCoefficientInput);
+  const hasRunoffCoefficient =
+    runoffCoefficientInput.trim().length > 0 &&
+    Number.isFinite(runoffCoefficient) &&
+    runoffCoefficient > 0;
+
+  const deriveFloodChanceScore = (
+    prediction: FloodModelPrediction,
+    coefficient: number,
+    signals: { soilMoistureAvg: number; rainfallAvg: number } | null,
+  ) => {
+    const risk = (prediction.risk_status || "").toUpperCase();
+    let baseScore = 0;
+
+    if (
+      risk.includes("HIGH") ||
+      risk.includes("SEVERE") ||
+      risk.includes("CRITICAL")
+    ) {
+      baseScore = 85;
+    }
+    if (!baseScore && (risk.includes("MODERATE") || risk.includes("WARNING"))) {
+      baseScore = 60;
+    }
+    if (!baseScore && (risk.includes("LOW") || risk.includes("SAFE"))) {
+      baseScore = 25;
+    }
+
+    if (!baseScore) {
+      const baseline = Number(prediction.historical_baseline_m || 0);
+      const predicted = Number(prediction.predicted_flood_level_m || 0);
+      if (baseline <= 0) {
+        baseScore = Math.max(0, Math.min(100, Math.round(predicted * 10)));
+      } else {
+        baseScore = Math.max(
+          0,
+          Math.min(100, Math.round((predicted / baseline) * 100)),
+        );
+      }
+    }
+
+    const soilFactor = signals
+      ? Math.max(0.75, Math.min(1.35, signals.soilMoistureAvg / 20))
+      : 1;
+    const rainFactor = signals
+      ? Math.max(0.75, Math.min(1.45, signals.rainfallAvg / 10))
+      : 1;
+    const environmentalFactor = (soilFactor + rainFactor) / 2;
+    const coefficientFactor = Math.max(0.1, Math.min(2, coefficient));
+    const weightedScore = baseScore * environmentalFactor * coefficientFactor;
+
+    return Math.max(0, Math.min(100, Math.round(weightedScore)));
+  };
+
+  const normalizeModelRiskLabel = (riskStatus: string) => {
+    const sanitized = (riskStatus || "")
+      .replace(/[^\x20-\x7E]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!sanitized) {
+      return "Model Synced";
+    }
+
+    return sanitized;
+  };
+
+  const applyFallbackRiskModel = () => {
+    if (!hasRunoffCoefficient) {
+      setMaargRiskScore(0);
+      setMaargRiskLevel("Coefficient Required");
+      return;
+    }
+
     const rain = globalWeather?.rain || 0;
     const riverLevel = nearestRiskStation?.level || 0;
     const dangerMark = nearestRiskStation?.danger || 2.5;
 
-    // Predictive Hazard Formula
-    const rainSignal = (rain / 50) * 0.4; // Weighted rain impact
-    const riverSignal = (riverLevel / dangerMark) * 0.6; // Weighted river surge impact
+    const rainSignal = (rain / 50) * 0.4;
+    const riverSignal = (riverLevel / dangerMark) * 0.6;
     const rawScore = (rainSignal + riverSignal) * 100;
+    const finalScore = Math.max(
+      0,
+      Math.min(100, Math.round(rawScore * runoffCoefficient)),
+    );
 
-    const finalScore = Math.max(0, Math.min(100, Math.round(rawScore)));
     setMaargRiskScore(finalScore);
+    if (finalScore >= 75) {
+      setMaargRiskLevel("Critical Hazard");
+      return;
+    }
+    if (finalScore >= 40) {
+      setMaargRiskLevel("Vigilance Warning");
+      return;
+    }
+    setMaargRiskLevel("Stable / Clear");
+  };
 
-    if (finalScore >= 75) setMaargRiskLevel("Critical Hazard");
-    else if (finalScore >= 40) setMaargRiskLevel("Vigilance Warning");
-    else setMaargRiskLevel("Stable / Clear");
-  }, [globalWeather, nearestRiskStation]);
+  // Location-aware model inference using deployed JalRakshak model.
+  useEffect(() => {
+    if (userLat === null || userLng === null) {
+      setModelPrediction(null);
+      setMaargRiskScore(0);
+      setMaargRiskLevel("Awaiting Location");
+      setModelPredictionError(null);
+      return;
+    }
+
+    let isCancelled = false;
+    const controller = new AbortController();
+
+    const predictFloodRisk = async () => {
+      setIsModelPredicting(true);
+      setModelPredictionError(null);
+
+      try {
+        const payload = JSON.stringify({
+          lat: userLat,
+          lon: userLng,
+          raw_sensor_reading: Number(nearestRiskStation?.level || 0),
+        });
+
+        const modelEndpoints = [
+          `${FLOOD_MODEL_BASE_URL}/predict_flood_risk`,
+          `${FLOOD_MODEL_BASE_URL}/api/model-fallback/predict_flood_risk`,
+        ];
+
+        let prediction: FloodModelPrediction | null = null;
+
+        for (const endpoint of modelEndpoints) {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: payload,
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            continue;
+          }
+
+          prediction = (await response.json()) as FloodModelPrediction;
+          break;
+        }
+
+        if (!prediction) {
+          throw new Error("All model endpoints failed");
+        }
+
+        if (isCancelled) {
+          return;
+        }
+
+        setModelPrediction(prediction);
+        if (!hasRunoffCoefficient) {
+          setMaargRiskScore(0);
+          setMaargRiskLevel("Coefficient Required");
+        } else {
+          const chanceScore = deriveFloodChanceScore(
+            prediction,
+            runoffCoefficient,
+            modelSignals,
+          );
+          setMaargRiskScore(chanceScore);
+          setMaargRiskLevel(normalizeModelRiskLabel(prediction.risk_status));
+        }
+      } catch (error) {
+        if (isCancelled || controller.signal.aborted) {
+          return;
+        }
+
+        console.error("Model prediction failed:", error);
+        setModelPrediction(null);
+        setModelPredictionError("Model API unavailable");
+        applyFallbackRiskModel();
+      } finally {
+        if (!isCancelled) {
+          setIsModelPredicting(false);
+        }
+      }
+    };
+
+    void predictFloodRisk();
+
+    return () => {
+      isCancelled = true;
+      controller.abort();
+    };
+  }, [
+    FLOOD_MODEL_BASE_URL,
+    globalWeather?.rain,
+    hasRunoffCoefficient,
+    modelSignals,
+    nearestRiskStation?.danger,
+    nearestRiskStation?.level,
+    runoffCoefficient,
+    userLat,
+    userLng,
+  ]);
 
   const handleViewSafeZones = () => {
     setActiveTab("map");
@@ -960,37 +1240,70 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     coords: { lat: number; lng: number; name?: string } | null,
   ) => {
     if (!coords) return null;
-    const sum = coords.lat + coords.lng;
-    let locationName = coords.name || "Your Area";
+    const locationName = coords.name || "Your Area";
 
-    if (sum % 2 > 1.5)
+    if (!hasRunoffCoefficient) {
       return {
         locationName,
-        level: t.severeFlood,
-        color: "text-red-500",
-        bg: "bg-red-500/10",
-        border: "border-red-500/20",
-        icon: <AlertTriangle className="text-red-500" />,
-        desc: t.severeFloodDesc,
-      };
-    if (sum % 2 > 0.8)
-      return {
-        locationName,
-        level: t.aboveWarning,
+        level: "Coefficient Required",
         color: "text-amber-500",
         bg: "bg-amber-500/10",
         border: "border-amber-500/20",
         icon: <Activity className="text-amber-500" />,
-        desc: t.aboveWarningDesc,
+        desc: "Enter runoff coefficient to calculate flood chance from the model.",
       };
+    }
+
+    if (isModelPredicting) {
+      return {
+        locationName,
+        level: "Model Predicting",
+        color: "text-amber-500",
+        bg: "bg-amber-500/10",
+        border: "border-amber-500/20",
+        icon: <Loader2 className="text-amber-500 animate-spin" />,
+        desc: "Calculating location-aware flood chance from live model.",
+      };
+    }
+
+    const modelDesc = modelPrediction
+      ? `Flood chance: ${maargRiskScore}% . Forecast ${Number(modelPrediction.predicted_flood_level_m || 0).toFixed(2)}m vs baseline ${Number(modelPrediction.historical_baseline_m || 0).toFixed(2)}m.`
+      : `Flood chance: ${maargRiskScore}% from river and weather telemetry.`;
+
+    if (maargRiskScore >= 75) {
+      return {
+        locationName,
+        level: maargRiskLevel || t.severeFlood,
+        color: "text-red-500",
+        bg: "bg-red-500/10",
+        border: "border-red-500/20",
+        icon: <AlertTriangle className="text-red-500" />,
+        desc: modelDesc,
+      };
+    }
+
+    if (maargRiskScore >= 40) {
+      return {
+        locationName,
+        level: maargRiskLevel || t.aboveWarning,
+        color: "text-amber-500",
+        bg: "bg-amber-500/10",
+        border: "border-amber-500/20",
+        icon: <Activity className="text-amber-500" />,
+        desc: modelDesc,
+      };
+    }
+
     return {
       locationName,
-      level: t.normalFlood,
+      level: maargRiskLevel || t.normalFlood,
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
       border: "border-emerald-500/20",
       icon: <CheckCircle2 className="text-emerald-500" />,
-      desc: t.normalFloodDesc,
+      desc: modelPredictionError
+        ? `${modelDesc} Model endpoint unavailable, fallback scoring active.`
+        : modelDesc,
     };
   };
 
@@ -1182,6 +1495,78 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     }
   };
 
+  const fetchModelSignals = async () => {
+    setIsModelSignalsLoading(true);
+
+    const extractTagValues = (xml: string, tagName: string) => {
+      const regex = new RegExp(`<${tagName}>([^<]+)</${tagName}>`, "g");
+      const values: number[] = [];
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(xml)) !== null) {
+        const parsed = Number(match[1]);
+        if (Number.isFinite(parsed)) {
+          values.push(parsed);
+        }
+      }
+
+      return values;
+    };
+
+    const average = (values: number[]) => {
+      if (!values.length) return 0;
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    };
+
+    try {
+      const payload = await fetchJsonWithTimeoutRetry(
+        `${API_BASE_URL}/api/model-signals`,
+      );
+      if (!payload?.success || !payload?.data) {
+        throw new Error("Invalid model signals payload");
+      }
+
+      setModelSignals({
+        soilMoistureAvg: Number(payload.data.soil_moisture_avg || 0),
+        rainfallAvg: Number(payload.data.rainfall_avg || 0),
+      });
+    } catch (error) {
+      try {
+        const soilApiUrl =
+          "https://api.data.gov.in/resource/4554a3c8-74e3-4f93-8727-8fd92161e345?api-key=579b464db66ec23bdd0000015c329c8f705141aa5ee7bb933250257a&format=xml";
+        const rainfallApiUrl =
+          "https://api.data.gov.in/resource/6c05cd1b-ed59-40c2-bc31-e314f39c6971?api-key=579b464db66ec23bdd0000015c329c8f705141aa5ee7bb933250257a&format=xml";
+
+        const [soilXmlRes, rainfallXmlRes] = await Promise.all([
+          fetch(soilApiUrl),
+          fetch(rainfallApiUrl),
+        ]);
+
+        if (!soilXmlRes.ok || !rainfallXmlRes.ok) {
+          throw new Error("Data.gov direct fetch failed");
+        }
+
+        const [soilXml, rainfallXml] = await Promise.all([
+          soilXmlRes.text(),
+          rainfallXmlRes.text(),
+        ]);
+
+        const soilValues = extractTagValues(soilXml, "Avg_smlvl_at15cm");
+        const rainfallValues = extractTagValues(rainfallXml, "Avg_rainfall");
+
+        setModelSignals({
+          soilMoistureAvg: Number(average(soilValues).toFixed(3)),
+          rainfallAvg: Number(average(rainfallValues).toFixed(3)),
+        });
+      } catch (directError) {
+        console.error("Unable to fetch model signals:", directError || error);
+        setModelSignals(null);
+      }
+    } finally {
+      setIsModelSignalsLoading(false);
+    }
+  };
+
   const handleRetry = async () => {
     if (!apiErrorModal.target) return;
     setIsRetryingAction(true);
@@ -1214,6 +1599,10 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
   useEffect(() => {
     fetchFloodData(false);
+  }, []);
+
+  useEffect(() => {
+    fetchModelSignals();
   }, []);
 
   useEffect(() => {
@@ -1860,20 +2249,11 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           setIsReporting(false);
           setReportSuccess(true);
           setGeneratedComplaintId(reportReference);
-          setTrackingId(reportReference);
+          setTrackedComplaint(null);
+          setActiveTrackingData(null);
           saveReportReferenceMapping(reportReference, result.reportId);
-          setTrackedComplaint({
-            id: reportReference,
-            status: "pending",
-            update: "Report submitted successfully",
-            time: "Just Now",
-          });
 
-          // Mission Control: Auto-refresh page in 5 seconds to sync telemetry
-          showToast(`Report ${reportReference} Generated. Refreshing dashboard in 5s...`, "success");
-          setTimeout(() => {
-            window.location.reload();
-          }, 5000);
+          showToast(`Report ${reportReference} submitted successfully. Your reference code is generated.`, "success");
 
           // Reset form
           setFormData({
@@ -2113,7 +2493,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             const res = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
             );
-            const data = await res.json();
+            const data: ReverseGeocodePayload = await res.json();
+            const parsedAddress = extractAddressFields(data);
             const locationName = data.display_name || "Current Location";
             setLocationCoords({ lat, lng, address: locationName });
 
@@ -2121,14 +2502,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             setFormData((prev) => ({
               ...prev,
               address: locationName,
-              city:
-                data.address.city ||
-                data.address.town ||
-                data.address.suburb ||
-                data.address.district ||
-                "",
-              state: data.address.state || "",
-              pincode: data.address.postcode || "",
+              city: parsedAddress.city,
+              state: parsedAddress.state,
+              pincode: parsedAddress.pincode,
             }));
           } catch (e) {
             setLocationCoords({ lat, lng, address: "Current Location" });
@@ -2995,6 +3371,32 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           )}
                         </div>
 
+                        {safetyLocation && (
+                          <div className="mb-6 rounded-xl border border-ashoka-blue/20 bg-ashoka-blue/5 p-4">
+                            <div className="flex flex-col md:flex-row md:items-end gap-4">
+                              <div className="flex-1">
+                                <label className="text-[10px] uppercase tracking-widest text-ashoka-blue font-bold">
+                                  Runoff Coefficient (Required)
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={runoffCoefficientInput}
+                                  onChange={(e) =>
+                                    setRunoffCoefficientInput(e.target.value)
+                                  }
+                                  placeholder="e.g. 0.85"
+                                  className="mt-2 w-full md:max-w-xs rounded-lg border border-border bg-white px-3 py-2 text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-ashoka-blue/30"
+                                />
+                                <p className="mt-2 text-[11px] text-ink/60">
+                                  Flood chance stays hidden until this coefficient is entered.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {safetyLocation ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             <motion.div
@@ -3089,32 +3491,40 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             icon={<Zap className="text-saffron" />}
                             label={t.localPrediction}
                             value={
-                              isWeatherLoading
+                              !hasRunoffCoefficient
+                                ? "Awaiting Coefficient"
+                                : isModelPredicting
                                 ? "..."
-                                : globalWeather && globalWeather.rain > 5
-                                  ? "Elevated Risk"
-                                  : t.lowRisk
+                                : modelPrediction
+                                  ? `${maargRiskScore}% Flood Chance`
+                                  : safetyLocation
+                                    ? "Awaiting Model Data"
+                                    : "---"
                             }
                             status={
-                              isWeatherLoading
-                                ? "Syncing"
-                                : globalWeather && globalWeather.rain > 5
-                                  ? "Monitoring"
-                                  : t.stable
+                              !hasRunoffCoefficient
+                                ? "Input Required"
+                                : safetyLocation
+                                  ? "Model Online"
+                                  : "---"
                             }
                             statusColor={
-                              isWeatherLoading
-                                ? "text-ink/40"
-                                : globalWeather && globalWeather.rain > 5
-                                  ? "text-saffron"
-                                  : "text-india-green"
+                              !hasRunoffCoefficient
+                                ? "text-ashoka-blue"
+                                : safetyLocation
+                                  ? "text-india-green"
+                                  : "text-ink/40"
                             }
                             subValue={
-                              isWeatherLoading
-                                ? "Updating pressure model"
-                                : globalWeather
-                                  ? `SLP: ${globalWeather.pressure} hPa • AI Forecast`
-                                  : t.hyperLocalAiForecast
+                              !hasRunoffCoefficient
+                                ? "Enter runoff coefficient to unlock model flood chance"
+                                : isModelPredicting
+                                ? "Running geo-aware model inference"
+                                : modelPrediction
+                                  ? `${maargRiskLevel} • ${modelPrediction.station_mapped} • ${Number(modelPrediction.predicted_flood_level_m || 0).toFixed(2)}m forecast`
+                                  : modelPredictionError
+                                    ? "Model fetch retrying. Telemetry fallback active"
+                                    : t.hyperLocalAiForecast
                             }
                           />
                           <SafetyCard
@@ -3231,14 +3641,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               Nearest Risk Station
                             </div>
                             <div className="text-sm font-bold text-ashoka-blue truncate">
-                              {nearestRiskStation
-                                ? nearestRiskStation.name
-                                : "--"}
+                              {modelPrediction
+                                ? modelPrediction.station_mapped
+                                : nearestRiskStation
+                                  ? nearestRiskStation.name
+                                  : "--"}
                             </div>
                             <div className="text-[11px] mt-1 text-ink/60">
-                              {nearestRiskStation
-                                ? `${nearestRiskStation.level.toFixed(2)}m / ${nearestRiskStation.danger.toFixed(2)}m danger`
-                                : "Awaiting telemetry"}
+                              {modelPrediction
+                                ? `${Number(modelPrediction.predicted_flood_level_m || 0).toFixed(2)}m forecast / ${Number(modelPrediction.historical_baseline_m || 0).toFixed(2)}m historical`
+                                : nearestRiskStation
+                                  ? `${nearestRiskStation.level.toFixed(2)}m / ${nearestRiskStation.danger.toFixed(2)}m danger`
+                                  : "Awaiting telemetry"}
                             </div>
                           </div>
                           <div className="rounded-xl border border-border bg-white p-4">
@@ -3798,13 +4212,16 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                       <div className="w-full h-full relative">
                         <MapContainer
                           center={position || [20.5937, 78.9629]}
-                          zoom={position ? 15 : 5}
+                          zoom={position ? 18 : 5}
                           style={{ height: "100%", width: "100%" }}
                           ref={setMapRef}
                           zoomControl={false}
                           scrollWheelZoom={true}
                           dragging={true}
-                          maxZoom={18}
+                          minZoom={MAP_MIN_ZOOM}
+                          maxZoom={MAP_MAX_ZOOM}
+                          maxBounds={INDIA_MAP_BOUNDS}
+                          maxBoundsViscosity={1}
                           zoomSnap={0.1}
                           zoomDelta={0.5}
                           wheelPxPerZoomLevel={60}
@@ -3812,7 +4229,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           <TileLayer
                             attribution="Imagery &copy; Esri, USGS, NASA"
                             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                            maxZoom={19}
+                            maxNativeZoom={19}
+                            maxZoom={MAP_MAX_ZOOM}
                             opacity={1}
                           />
 
@@ -3920,7 +4338,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
                           <TileLayer
                             url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-                            maxZoom={19}
+                            maxNativeZoom={19}
+                            maxZoom={MAP_MAX_ZOOM}
                             opacity={0.7}
                             zIndex={200}
                           />
@@ -4931,6 +5350,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
                     {reportSuccess ? (
                       <motion.div
+                        ref={reportSuccessRef}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="text-center py-10"
@@ -4972,9 +5392,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         {/* Location Section */}
                         <div className="space-y-6">
                           <div className="flex items-center justify-between border-b border-border pb-4">
-                            <label className="text-[11px] font-black uppercase tracking-widest text-black/70 flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-ashoka-blue" /> 1.{" "}
-                              {t.incidentLocation}
+                            <label className="text-[12px] font-bold text-black/70 flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-ashoka-blue" /> 1. Where is the incident happening?
                             </label>
                             <button
                               type="button"
@@ -5007,9 +5426,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                               {locationCoords.lng.toFixed(6)}
                             </div>
                           )}
-                          <p className="text-[10px] text-black/50 font-mono uppercase tracking-widest">
-                            Location details are auto-captured from GPS and
-                            cannot be edited manually.
+                          <p className="text-[11px] text-black/50 font-medium">
+                            To ensure fastest response times, we automatically pinpoint your exact location to dispatch help exactly where it's needed.
                           </p>
 
                           <div className="grid grid-cols-1 gap-6">
@@ -5101,17 +5519,17 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                         <div className="space-y-6">
                           <label className="text-[11px] font-black uppercase tracking-widest text-black/70 flex items-center gap-2 border-b border-border pb-4 w-full">
                             <User className="w-4 h-4 text-ashoka-blue" />{" "}
-                            2. Reporter Details
+                            2. Your Contact Information
                           </label>
                           
                           <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest ml-1">Full Name of Reporter</label>
+                                <label className="text-[12px] font-bold text-black/60 tracking-wide ml-1">Your Full Name</label>
                                 <input
                                     type="text"
                                     value={formData.reporterName}
                                     onChange={(e) => setFormData({...formData, reporterName: e.target.value})}
-                                    placeholder="Enter your name"
+                                    placeholder="Enter your full name"
                                     className={`w-full bg-cream border rounded-xl px-5 py-3.5 text-sm focus:outline-none transition-all ${errors.reporterName ? "border-red-500" : "border-border focus:border-ashoka-blue"}`}
                                 />
                                 {errors.reporterName && (
@@ -5122,13 +5540,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                                    <Home className="w-3 h-3" /> Reporter Personal Address
+                                <label className="text-[12px] font-bold text-black/60 tracking-wide ml-1 flex items-center gap-1.5">
+                                    <Home className="w-3 h-3" /> Your Address
                                 </label>
                                 <textarea
                                     value={formData.reporterAddress}
                                     onChange={(e) => setFormData({...formData, reporterAddress: e.target.value})}
-                                    placeholder="Enter your permanent/temporary address"
+                                    placeholder="Enter your current location address"
                                     rows={2}
                                     className={`w-full bg-cream border rounded-xl px-5 py-3 text-sm focus:outline-none transition-all resize-none ${errors.reporterAddress ? "border-red-500" : "border-border focus:border-ashoka-blue"}`}
                                 />
@@ -6640,6 +7058,39 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         onClose={() => setApiErrorModal((prev) => ({ ...prev, show: false }))}
         isRetrying={isRetryingAction}
       />
+
+      <AnimatePresence>
+        {isReporting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[210] bg-[#0B3A68]/55 backdrop-blur-sm flex items-center justify-center px-6"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white/95 border border-white rounded-2xl px-10 py-8 shadow-2xl flex flex-col items-center gap-4"
+            >
+              <div className="relative h-20 w-20 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-4 border-ashoka-blue/20" />
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-ashoka-blue animate-spin" />
+                <img
+                  src="/logo.png"
+                  alt="JalRakshak Logo"
+                  className="h-10 w-10 object-contain"
+                />
+              </div>
+              <p className="text-[12px] font-black uppercase tracking-[0.18em] text-ashoka-blue text-center">
+                Submitting Report
+              </p>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-ink/50 text-center">
+                JalRakshak secure uplink in progress
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Toast
         toast={toast}
